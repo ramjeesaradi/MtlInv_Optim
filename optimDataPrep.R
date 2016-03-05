@@ -1,4 +1,4 @@
-setwd("/Users/Admin/Documents/workspace/Veero Optim/")
+setwd("/Users/ramjeesaradi/Documents/workspace/MtlInv_Optim")
 library(lpSolve)
 library(reshape)
 
