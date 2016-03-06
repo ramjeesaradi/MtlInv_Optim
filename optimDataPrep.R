@@ -60,7 +60,7 @@ names(rm3) <- c("RM","RM.Breadth","RM.Length")
 
 rm <- rbind(rm1,rm2,rm3)
 rm <- unique(rm)
-rm <- rm[which(!(is.na(rm$RM.Breadth) & is.na(rm$RM.Length))),]
+rm <- rm[which(!(is.na(rm$RM.Breadth) | is.na(rm$RM.Length))),]
 # rmpart <- merge(rm,inp1,
 #                 by.x = c("RM","Breadth","Length"), 
 #                 by.y =c("Raw.Material..Number","Raw.Material.Sizes..Breadth.","Raw.Material.Sizes..Length."),
@@ -87,3 +87,5 @@ sfg <- cast(rmpart,SFG ~ SFG_+RM+RM.Length+RM.Breadth,
             value = "Qnty",
             fun.aggregate = max,
             fill=0)
+
+sfg0 <- merge(sfg,sfgreq[sfgreq$month==0,],by.y = "sfg", by.x = "SFG",all.y = T)
