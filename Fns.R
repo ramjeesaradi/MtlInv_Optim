@@ -2,14 +2,19 @@ require(dummies)
 
 goodsPerRawMet <- function(rmL,rmW,rmT = 1.3,rmD = 0.0056, sfL,sfW){
   nl <- floor(rmL/sfL)
-  nw <- floor(rmW/rmW)
+  nw <- floor(rmW/sfW)
   gds <- nl*nw
   wt <- rmL*rmW*rmT*rmD
   return(gds/wt)
 }
 
 wastage <- function(rmL,rmW,sfL,sfW){
-  
+  nl <- floor(rmL/sfL)
+  nw <- floor(rmW/sfW)
+  usedArea <-  nl*sfL*nw*sfW
+  totalArea <- rmL*rmW
+  wastage <- 1-(usedArea/totalArea)
+  return(wastage*100)
 }
 
 toBool <- function(df,skips = NULL){

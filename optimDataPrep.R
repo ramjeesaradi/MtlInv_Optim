@@ -1,4 +1,4 @@
-setwd("/Users/ramjeesaradi/Documents/workspace/MtlInv_Optim")
+setwd("\\Users\\Admin\\Documents\\workspace\\Veero Optim")
 library(lpSolve)
 library(reshape)
 
@@ -31,14 +31,7 @@ sfgreq <- aggregate(CIR.Sales.order.No..Rejection.Production.order.requirement~s
 #                 fill = 0,
 #                 value = "pwastage")
 
-priority <- cast(inp1, .~Semi.Finished.Material.Number+Raw.Material..Number,
-                 fun.aggregate = max,
-                 add.missing = 0,
-                 fill = 0,
-                 value = "Priority.List.Mentioned.in.BOM")
-priority <- as.vector(t(priority[,-1]))
-priority[is.na(as.matrix(priority))]<-1
-priority <- priority-1
+
 
 ######################################################input 2############################
 
@@ -57,10 +50,13 @@ rm3 <- conv[,c("To.Material.Number","B.1","L.1")]
 names(rm1) <- c("RM","RM.Breadth","RM.Length")
 names(rm2) <- c("RM","RM.Breadth","RM.Length")
 names(rm3) <- c("RM","RM.Breadth","RM.Length")
-
+rm1$con <- ""
+rm2$con <- ""
+rm3$con <- "_Conv"
 rm <- rbind(rm1,rm2,rm3)
 rm <- unique(rm)
-rm <- rm[which(!(is.na(rm$RM.Breadth) | is.na(rm$RM.Length))),]
+
+#rm <- rm[which(!(is.na(rm$RM.Breadth) | is.na(rm$RM.Length))),]
 # rmpart <- merge(rm,inp1,
 #                 by.x = c("RM","Breadth","Length"), 
 #                 by.y =c("Raw.Material..Number","Raw.Material.Sizes..Breadth.","Raw.Material.Sizes..Length."),
@@ -70,22 +66,37 @@ rmpart <- unique(merge(rm,
                 by.x = c("RM"), 
                 by.y =c("Raw.Material..Number"),
                 all.x = T))
-names(rmpart) <- c("RM","RM.Breadth","RM.Length","SFG","SFG.Length","SFG.Breadth")
+nms <- names(rmpart) <- c(names(rm),"SFG","SFG.Length","SFG.Breadth")
 rmpart <- merge(rmpart,
                          inp1,
                          by.x = c("RM","RM.Breadth","RM.Length","SFG"),
                          by.y = c("Raw.Material..Number","Raw.Material.Sizes..Breadth.","Raw.Material.Sizes..Length.", "Semi.Finished.Material.Number"),
-                         all.x = T)[,c("RM","RM.Breadth","RM.Length","SFG","SFG.Length","SFG.Breadth","Priority.List.Mentioned.in.BOM","Raw.Material.required.quantity")]
+                         all.x = T)[,c(names(rmpart),"Priority.List.Mentioned.in.BOM","Raw.Material.required.quantity")]
 
-names(rmpart) <- c("RM","RM.Breadth","RM.Length","SFG","SFG.Length","SFG.Breadth","Priority","Qnty")
+names(rmpart) <- c(nms,"Priority","Qnty")
 rmpart$Qnty <- 1/rmpart$Qnty
 rmpart$Priority[is.na(rmpart$Priority)] <- 1+ max(rmpart$Priority[!is.na(rmpart$Priority)])
 attach(rmpart)
 rmpart$Qnty <- goodsPerRawMet(RM.Length,RM.Breadth,sfL = SFG.Length,sfW = SFG.Breadth)
+
+rmpart <- merge(rmpart,
+                inp2,
+                by.x = c("RM","RM.Breadth","RM.Length"),
+                by.y = c("Material.Code","Breadth","RM.Stock.with.Sizes..Length...Breadth."),
+                all.x = T)[,c(names(rmpart),"Ware.house.Stock")]
 rmpart$SFG_ <- rmpart$SFG
-sfg <- cast(rmpart,SFG ~ SFG_+RM+RM.Length+RM.Breadth,
+rmpart$RM_ <- apply(rmpart[,c("RM", "con")],1,FUN =  function (x) paste(x,collapse = ""))
+rmpart$RM.Length_ <- rmpart$RM.Length
+rmpart$RM.Breadth_ <- rmpart$RM.Breadth
+attach(rmpart)
+rmpart$wastage <- wastage(RM.Length,RM.Breadth,sfL = SFG.Length,sfW = SFG.Breadth)
+sfg <- cast(rmpart,SFG ~ SFG_+RM_+RM.Length+RM.Breadth,
             value = "Qnty",
             fun.aggregate = max,
+            fill=0)
+sfgstk <- cast(rmpart,RM_+RM.Length_+RM.Breadth_ ~ SFG_+RM+RM.Length+RM.Breadth,
+            value = "Ware.house.Stock",
+            fun.aggregate = function (x) 1/sum(x),
             fill=0)
 
 sfg0 <- merge(sfg,sfgreq[sfgreq$month==0,],by.y = "sfg", by.x = "SFG",all.y = T)

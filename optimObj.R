@@ -5,4 +5,14 @@ scrapGen <- function(sol,params){
   invUtil <- inventory$Ware.house.Stock - inventory$Qnty
   
 }
+
+invUtil <- function(sol,params){
+  cost <- sol %*% t(prams$sfgstk)
+  
+}
+
+wastemin <- function(sol,params){
+  cost <- sol %*%  t(prams$sfgwst)
+}
+
 gsub(".*?_","","S1A89220D_2021364-98.5-1250")
