@@ -1,18 +1,46 @@
-scrapGen <- function(sol,params){
-  sol1 <- data.frame(RM=sapply(params$PartRMComb0, function (x) gsub(".*?_","",x) ),Qnty= sol)
-  solAggr <- aggregate(Qnty~RM,sol1,sum)
-  inventory <- merge(params$inventory,solAggr, by.x = "Raw.Material..Number",by.y = "RM", all = T)
-  invUtil <- inventory$Ware.house.Stock - inventory$Qnty
-  
+constrobjfn <- function(sol,params){
+  constr <- reqMet(sol,params)
+  obj1 <- invUtil(sol,params)
+  obj2 <- wastemin(sol,params)
+  obj3 <- prmax(sol,params)
+  # obj4 <- expensmin(sol,params)
+  obj <- c(obj1,obj2,obj3)
+  fitness <- sqrt(sum(obj^2))
+  fitness <- constr/fitness
+  return(fitness)
+}
+
+objfn <- function(sol,params){
+  obj1 <- invUtil(sol,params)
+  obj2 <- wastemin(sol,params)
+  obj3 <- prmax(sol,params)
+  # obj4 <- expensmin(sol,params)
+  obj <- c(obj1,obj2,obj3)
+  fitness <- sqrt(sum(obj^2))
+  return(fitness)
+}
+reqMet <- function(sol,params){
+  req <- t(params$sfg0[,ncol(sfg0)])
+  produce <- sol %*% t(params$sfg0[,-ncol(sfg0)])
+  satis <- max(ifelse(produce-req==0,1,0))
+  return(satis)
 }
 
 invUtil <- function(sol,params){
-  cost <- sol %*% t(prams$sfgstk)
+  cost <- sol %*% t(params$rmstk)
+  cost <- sum(1000*((1-cost)^2))
+  return(cost)
   
 }
 
 wastemin <- function(sol,params){
-  cost <- sol %*%  t(prams$sfgwst)
+  cost <- sol %*%  t(params$sfgwst)
+  return(sum(cost^2))
+}
+
+prmax <- function(sol,params){
+  cost <- sol %*%  t(params$sfgpr)
+  return(sum(cost^2))
 }
 
 gsub(".*?_","","S1A89220D_2021364-98.5-1250")

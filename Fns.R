@@ -1,6 +1,13 @@
 require(dummies)
 
-goodsPerRawMet <- function(rmL,rmW,rmT = 1.3,rmD = 0.0056, sfL,sfW){
+goodsPerRawMet <- function(df){
+  rmL <- df$RM.Length
+  rmW <- df$RM.Breadth
+  sfL <- df$SFG.Length
+  sfW <- df$RM.Breadth
+  rmT <- df$RM.Thickness
+  rmD <- df$RM.Density
+  
   nl <- floor(rmL/sfL)
   nw <- floor(rmW/sfW)
   gds <- nl*nw
@@ -8,7 +15,11 @@ goodsPerRawMet <- function(rmL,rmW,rmT = 1.3,rmD = 0.0056, sfL,sfW){
   return(gds/wt)
 }
 
-wastage <- function(rmL,rmW,sfL,sfW){
+wastage <- function(df){
+  rmL <- df$RM.Length
+  rmW <- df$RM.Breadth
+  sfL <- df$SFG.Length
+  sfW <- df$RM.Breadth
   nl <- floor(rmL/sfL)
   nw <- floor(rmW/sfW)
   usedArea <-  nl*sfL*nw*sfW
