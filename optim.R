@@ -11,16 +11,23 @@ solObj <- lp(direction = "max",
              # all.int = T
 )
 sol <- solObj$solution
-print(reqMet(sol,params))
-print(length(solObj$solution))
-constrOptim(theta = solObj$solution
-            ,ui = sfg0[,-ncol(sfg0)]
-            ,ci = sfg0[,ncol(sfg0)]
-            ,f = function (x) objfn(x,params)
-            )
+# constrOptim(theta = solObj$solution
+#             ,ui = sfg0[,-ncol(sfg0)]
+#             ,ci = sfg0[,ncol(sfg0)]
+#             ,f = function (x) objfn(x,params)
+#             )
 
-sol <- optim(rep(0,length(pairnms)),
-             fn = function (x) constrobjfn(x,params)
-             ,control = list(fnscale = 1,maxit = 100000000 ,parscale = rep(100,length(pairnms)),abstol = 1)
+sol <- optim(rep(0,length(pairnms))
+             ,fn = function (x) constrobjfn(x,params)
+             ,method =
+             ,lower = -Inf, upper = Inf
+             ,control = list(fnscale = -1 ,parscale = rep(1,length(pairnms)))
 )
+sol <- hydroPSO(rep(0,length(pairnms))
+                ,fn = function (x) constrobjfn(x,params)
+                ,lower = rep(0,length(pairnms)), upper = rep(100000,length(pairnms))
+                ,control = list(MinMax = "max", npart =5000)
+                )
 
+print(reqMet(sol$par,params))
+#print(sol$par)
