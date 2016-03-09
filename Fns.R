@@ -48,3 +48,10 @@ toBool <- function(df,skips = NULL){
 rmclmn<- function(df, clmns){
   return(df[,!(names(df) %in% clmns)])
 }
+
+reqOff <- function(sol,params){
+  req <- t(params$sfg0[,ncol(sfg0)])
+  produce <- sol %*% t(params$sfg0[,-ncol(sfg0)])
+  satis <- list(prd = produce,req = req, dif = req-produce)
+  return(satis)
+}

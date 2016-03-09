@@ -1,6 +1,7 @@
 setwd("\\Users\\Admin\\Documents\\workspace\\Veero Optim")
 library(lpSolve)
 library(reshape)
+library(data.table)
 
 source("Fns.R")
 
@@ -10,12 +11,13 @@ inp1 <- read.csv("input1.csv",skip = 1)
 
 inp1$sfg <- inp1$Semi.Finished.Material.Number
 inp1$sfg <- sapply(inp1$sfg, function (x) gsub("\t", "", x))
+inp1$Priority.List.Mentioned.in.BOM[!is.na(inp1$Priority.List.Mentioned.in.BOM)]<- 0
 inp1$Priority.List.Mentioned.in.BOM[is.na(inp1$Priority.List.Mentioned.in.BOM)]<- 1
 
 months <-  as.Date(inp1$Forecast.Month)
 
 inp1$month <- round(difftime(months,min(months),units = "days")/30)
-inp1$nsfg <- 1/Raw.Material.required.quantity
+
 
 
 # inp1$nsfg <- goodsPerRawMet(rmL = Raw.Material.Sizes..Length.,rmW = Raw.Material.Sizes..Breadth., sfL = Finished.Semi.FinishedMaterial.Sizes..Length...Breadth.,sfW = Breadth)
@@ -61,11 +63,17 @@ rm <- rm[which(!(is.na(rm$RM.Breadth) | is.na(rm$RM.Length))),]
 #                 by.y =c("Raw.Material..Number","Raw.Material.Sizes..Breadth.","Raw.Material.Sizes..Length."),
 #                 all.x = T)
 
-rmpart <- unique(merge(rm,
-                unique(inp1[,c("Semi.Finished.Material.Number", "Finished.Semi.FinishedMaterial.Sizes..Length...Breadth.","Breadth","Raw.Material..Number")]),
+rmpart0 <- unique(merge(rm,
+                unique(inp1[inp1$Priority.List.Mentioned.in.BOM ==0,]),
                 by.x = c("RM"), 
                 by.y =c("Raw.Material..Number"),
-                all.x = T))
+                all.x = T)[,c(names(rm),"Semi.Finished.Material.Number", "Finished.Semi.FinishedMaterial.Sizes..Length...Breadth.","Breadth")])
+rmpart1 <- unique(merge(rm,
+                        unique(inp1[inp1$Priority.List.Mentioned.in.BOM ==1,]),
+                        by.x = c("RM","RM.Breadth","RM.Length"), 
+                        by.y =c("Raw.Material..Number","Raw.Material.Sizes..Breadth.","Raw.Material.Sizes..Length."),
+                        all = T)[,c(names(rm),"Semi.Finished.Material.Number", "Finished.Semi.FinishedMaterial.Sizes..Length...Breadth.","Breadth")])
+rmpart <- rbind(rmpart0,rmpart1)
 nms <- names(rmpart) <- c(names(rm),"SFG","SFG.Length","SFG.Breadth")
 
 ##Assign priority For RM, SFG Combination
@@ -73,10 +81,9 @@ rmpart <- merge(rmpart,
                          inp1,
                          by.x = c("RM","RM.Breadth","RM.Length","SFG"),
                          by.y = c("Raw.Material..Number","Raw.Material.Sizes..Breadth.","Raw.Material.Sizes..Length.", "Semi.Finished.Material.Number"),
-                         all.x = T)[,c(names(rmpart),"Priority.List.Mentioned.in.BOM","Raw.Material.required.quantity")]
+                         all.x = T)[,c(names(rmpart),"Raw.Material.required.quantity")]
 
-names(rmpart) <- c(nms,"Priority","Qnty")
-rmpart$Priority[is.na(rmpart$Priority)] <- 1+ max(rmpart$Priority[!is.na(rmpart$Priority)])
+names(rmpart) <- c(nms,"Qnty")
 rmpart[is.na(as.matrix(rmpart))] <- 0
 rmpart$RM.Thickness <- rep(1.2,nrow(rmpart))
 rmpart$RM.Density <- rep(0.0056,nrow(rmpart))
@@ -98,6 +105,7 @@ rmpart$wastage <- wastage(rmpart)
 
 rmpart <- rmpart[!is.na(rmpart$SFG),]
 rmpart[is.na(as.matrix(rmpart))] <- 0
+####################################
 
 
 #############################################Generate Matrices#######################
@@ -107,6 +115,8 @@ sfg <- cast(rmpart,SFG ~ SFG_+RM_+RM.Length+RM.Breadth,
             fill=0)
 
 pairnms <- names(sfg)[-1]
+pairs <- lapply(strsplit(pairnms, "_"), function (x) x)
+# ifelse(length(x)==4,c(x,""),x[c(1,2,4,5,3)])
 #Stock Matrix after combinig all whare houses
 rmstk <- cast(rmpart,RM+RM.Length_+RM.Breadth_ ~ SFG_+RM_+RM.Length+RM.Breadth,
             value = "Ware.house.Stock",
@@ -114,6 +124,7 @@ rmstk <- cast(rmpart,RM+RM.Length_+RM.Breadth_ ~ SFG_+RM_+RM.Length+RM.Breadth,
             fill=0)
 
 params$rmstk <- rmstk[,pairnms]
+params$rmstkln <- colMeans(rmstk[,pairnms])
 
 sfgwst <- cast(rmpart,SFG ~ SFG_+RM_+RM.Length+RM.Breadth,
             value = "wastage",
@@ -121,11 +132,11 @@ sfgwst <- cast(rmpart,SFG ~ SFG_+RM_+RM.Length+RM.Breadth,
             fill=0)
 params$sfgwst <- sfgwst[,pairnms]
 
-sfgpr <- sfgwst <- cast(rmpart,. ~ SFG_+RM_+RM.Length+RM.Breadth,
-            value = "Priority",
-            fun.aggregate = max,
-            fill=0)
-params$sfgpr <- sfgpr[,pairnms]
+# sfgpr <- sfgwst <- cast(rmpart,. ~ SFG_+RM_+RM.Length+RM.Breadth,
+#             value = "Priority",
+#             fun.aggregate = max,
+#             fill=0)
+# params$sfgpr <- sfgpr[,pairnms]
 
 sfg0 <- merge(sfg,sfgreq[sfgreq$month==0,],by.y = "sfg", by.x = "SFG",all.y = T)
 sfg0 <- as.matrix(sfg0[,c(pairnms,"CIR.Sales.order.No..Rejection.Production.order.requirement")])

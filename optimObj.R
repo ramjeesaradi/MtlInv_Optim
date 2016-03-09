@@ -2,27 +2,27 @@ constrobjfn <- function(sol,params){
   constr <- reqMet(sol,params)
   obj1 <- invUtil(sol,params)
   obj2 <- wastemin(sol,params)
-  obj3 <- prmax(sol,params)
+  # obj3 <- prmax(sol,params)
   # obj4 <- expensmin(sol,params)
-  obj <- c(obj1,obj2,obj3)
+  obj <- c(obj1,obj2,constr)
   fitness <- sqrt(sum(obj^2))
-  fitness <- constr/fitness
+  # fitness <- constr*fitness
   return(fitness)
 }
 
 objfn <- function(sol,params){
   obj1 <- invUtil(sol,params)
   obj2 <- wastemin(sol,params)
-  obj3 <- prmax(sol,params)
+  # obj3 <- prmax(sol,params)
   # obj4 <- expensmin(sol,params)
-  obj <- c(obj1,obj2,obj3)
+  obj <- c(obj1,obj2)
   fitness <- sqrt(sum(obj^2))
   return(fitness)
 }
 reqMet <- function(sol,params){
   req <- t(params$sfg0[,ncol(sfg0)])
   produce <- sol %*% t(params$sfg0[,-ncol(sfg0)])
-  satis <- max(ifelse(produce-req==0,1,0))
+  satis <- sum((produce-req)^2)
   return(satis)
 }
 
