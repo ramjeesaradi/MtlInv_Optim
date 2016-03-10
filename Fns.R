@@ -1,5 +1,11 @@
 require(dummies)
 
+renameCol <- function(df,oldname, newname){
+  names(df)[names(df) %in% oldname] <- newname
+  # names(df) <- newnames
+  return(df)
+}
+
 goodsPerRawMet <- function(df){
   rmL <- df$RM.Length
   rmW <- df$RM.Breadth
@@ -15,6 +21,17 @@ goodsPerRawMet <- function(df){
   return(gds/wt)
 }
 
+sfgwt <-  function(df){
+  rmL <- df$RM.Length
+  rmW <- df$RM.Breadth
+  sfL <- df$SFG.Length
+  sfW <- df$RM.Breadth
+  rmT <- df$RM.Thickness
+  rmD <- df$RM.Density
+  
+  wt <- sfL*sfW*rmT*rmD
+  return(wt)
+}
 wastage <- function(df){
   rmL <- df$RM.Length
   rmW <- df$RM.Breadth
