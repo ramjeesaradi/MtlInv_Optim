@@ -1,9 +1,8 @@
 constrobjfn <- function(sol,params){
   constr <- reqMet(sol,params)
-  obj1 <- invUtil(sol,params)
-  # obj2 <- wastemin(sol,params)
-  # obj3 <- prmax(sol,params)
-  # obj4 <- expensmin(sol,params)
+  obj1 <- invUtilSheet(sol,params)
+  obj2 <- invUtilCoil(sol,params)
+  
   obj <- c(obj1,constr)
   fitness <- sqrt(sum(obj^2))
   # fitness <- constr*fitness
@@ -26,9 +25,16 @@ reqMet <- function(sol,params){
   return(satis)
 }
 
-invUtil <- function(sol,params){
-  cost <- sol %*% t(params$rmstk)
-  cost <- sum(1000*((1-cost)^2))
+invUtilSheet <- function(sol,params){
+  cost <- sol %*% t(params$Sheetstk)
+  cost <- sum(cost)/length(sol)
+  return(cost)
+  
+}
+
+invUtilCoil <- function(sol,params){
+  cost <- sol %*% t(params$Coilstk)
+  cost <- sum(cost)/length(sol)
   return(cost)
   
 }

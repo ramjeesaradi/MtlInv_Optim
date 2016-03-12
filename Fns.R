@@ -11,7 +11,7 @@ goodsPerRawMet <- function(df){
   rmW <- df$RM.Breadth
   sfL <- df$SFG.Length
   sfW <- df$RM.Breadth
-  rmT <- df$RM.Thickness
+  rmT <- df$RM.Width
   rmD <- df$RM.Density
   
   nl <- floor(rmL/sfL)
@@ -26,7 +26,7 @@ sfgwt <-  function(df){
   rmW <- df$RM.Breadth
   sfL <- df$SFG.Length
   sfW <- df$RM.Breadth
-  rmT <- df$RM.Thickness
+  rmT <- df$RM.Width
   rmD <- df$RM.Density
   
   wt <- sfL*sfW*rmT*rmD
