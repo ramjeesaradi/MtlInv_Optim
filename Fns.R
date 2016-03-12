@@ -66,6 +66,12 @@ rmclmn<- function(df, clmns){
   return(df[,!(names(df) %in% clmns)])
 }
 
+Splitclmn <- function(col,Split){
+  out.df <- t(as.data.frame(sapply(col, function (x) strsplit(as.character(x), "_"))))
+  row.names(out.df) <- NULL
+  return(out.df)
+}
+
 reqOff <- function(sol,params){
   req <- t(params$sfg0[,ncol(sfg0)])
   produce <- sol %*% t(params$sfg0[,-ncol(sfg0)])

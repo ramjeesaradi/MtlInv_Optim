@@ -8,7 +8,7 @@ source("Fns.R")
 
 params <- list()
 
-wsthrs <- 15
+wsthrs <- 10
 
 inp1 <- read.csv("input1.csv",skip = 1)
 
@@ -32,10 +32,15 @@ sfgreq <- aggregate(CIR.Sales.order.No..Rejection.Production.order.requirement~s
 
 inp2 <- read.csv("input2.csv")
 inp2$Moving.Average.Price <- as.numeric(inp2$Moving.Average.Price)
-inp2$Lead.Times <- as.numeric(inp2$Lead.Times)
 inp2$RM.Stock.with.Sizes..Length...Breadth.[is.na(inp2$RM.Stock.with.Sizes..Length...Breadth.)] <- 0
-#Aggregate Stock from both ware houses max(Moving.Average.Price)+max(Lead.Times)
+inp2$Ware.house.Stock[is.na(inp2$Ware.house.Stock)] <- 0
+inp2$Moving.Average.Price[is.na(inp2$Moving.Average.Price)] <- 0
+inp2$Lead.Times[is.na(inp2$Lead.Times)] <- 0
 
+#Aggregate Stock from both ware houses max(Moving.Average.Price)+max(Lead.Times)
+inp2 <- aggregate(cbind(Ware.house.Stock,Moving.Average.Price)  ~ Material.Code+Breadth+RM.Stock.with.Sizes..Length...Breadth.+Thickness+Density,
+                  inp2,
+                  sum)
 
 ######################################################  Conv############################
 conv <- read.csv("conversion.csv", skip = 10)
@@ -112,34 +117,34 @@ rmpart <- rbind.fill(rmpartSheet,rmpartCoil)
 rmpart <- rmpart[!is.na(rmpart$RM),]
 
 ########################### Separate entries for each RM with Stock and with out stock ###############################
-rmpart$inStk <- NA
-rmpartShInstk <- rmpart[!is.na(rmpart$SheetStock),]
-rmpartCoInstk <- rmpart[!is.na(rmpart$CoilStock),]
-rmpart$inStk <- "noStk"
+rmpart$inStock <- NA
+rmpartShinStock <- rmpart[!is.na(rmpart$SheetStock),]
+rmpartCoinStock <- rmpart[!is.na(rmpart$CoilStock),]
+rmpart$inStock <- "noStock"
 
-#Change cost of "inStk" rm to 0 except coils to sheet convesion Cost
-if(nrow(rmpartShInstk) != 0){
-  rmpartShInstk$inStk <- "inStk"
-  rmpartShInstk$SheetCost <- 0
-  rmpartShInstk$CoilCost <- 0
+#Change cost of "inStock" rm to 0 except coils to sheet convesion Cost
+if(nrow(rmpartShinStock) != 0){
+  rmpartShinStock$inStock <- "inStock"
+  rmpartShinStock$SheetCost <- 0
+  rmpartShinStock$CoilCost <- 0
   }
 
-if(nrow(rmpartCoInstk) != 0){
-  rmpartCoInstk$inStk <- "inStk"
-  rmpartCoInstk$CoilCost <- 0
-  rmpartCoInstk$SheetCost <- 0
+if(nrow(rmpartCoinStock) != 0){
+  rmpartCoinStock$inStock <- "inStock"
+  rmpartCoinStock$CoilCost <- 0
+  rmpartCoinStock$SheetCost <- 0
   }
 #
-rmpartShInstk$CoilStock <- 0
+rmpartShinStock$CoilStock <- 0
 rmpart$CoilStock <- 0
 rmpart$SheetStock <- 0
-rmpart <- rbind(rmpart,rmpartShInstk,rmpartCoInstk)
+rmpart <- rbind(rmpart,rmpartShinStock,rmpartCoinStock)
 
 
 
 ###########################Generate Costs for each material ##############################################
-rmpart$SheetCost[rmpart$inStk == "inStk"] <- 0
-rmpart$CoilCost[rmpart$inStk == "inStk"] <- 0
+rmpart$SheetCost[rmpart$inStock == "inStock"] <- 0
+rmpart$CoilCost[rmpart$inStock == "inStock"] <- 0
 
 ##########################################################################################################
 rmpart <- rmpart[!is.na(rmpart$SFG),]
@@ -167,7 +172,7 @@ rmpart <- rmpart[!is.na(rmpart$RM),]
 rmpart1 <- merge(rmpart,sfgreq,by.y = "sfg", by.x = "SFG")[,names(rmpart)]
 #############################################Generate Matrices#######################
 #Matrix for Calculating the parts produced
-sfg <- cast(rmpart1,SFG + Req ~ SFG_+RM_+con_+RM.Length+RM.Breadth+inStk,
+sfg <- cast(rmpart1,SFG + Req ~ SFG_+RM_+con_+RM.Length+RM.Breadth+inStock,
             value = "Qnty",
             fun.aggregate = max,
             fill=0)
@@ -177,26 +182,26 @@ pairnms <- names(sfg)[-c(1,2)]
 # # ifelse(length(x)==4,c(x,""),x[c(1,2,4,5,3)])
 # 
 #Matrix for Calculating the percentage wastage
-wstprct <- cast(rmpart1,.~ SFG_+RM_+con_+RM.Length+RM.Breadth+inStk,
+wstprct <- cast(rmpart1,.~ SFG_+RM_+con_+RM.Length+RM.Breadth+inStock,
             value = "tsfgwt",
             fun.aggregate = function (x) ifelse(sum(x)==0,yes = 0,no = 1/(max(x)*nrow(sfg))),
             fill=0)
 params$wstprct <- wstprct[,pairnms]
 #Stock Matrix after combinig all whare houses
-Sheetstk <- cast(rmpart1,RM+RM.Length_+RM.Breadth_ ~ SFG_+RM_+con_+RM.Length+RM.Breadth+inStk,
+Sheetstk <- cast(rmpart1,RM+RM.Length_+RM.Breadth_ ~ SFG_+RM_+con_+RM.Length+RM.Breadth+inStock,
             value = "SheetStock",
             fun.aggregate = function (x) ifelse(sum(x)==0,yes = 0,no = 1/max(x)),
             fill=0)
 
 params$Sheetstk <- Sheetstk[,c(pairnms)]
-Coilstk <- cast(rmpart1,con ~ SFG_+RM_+con_+RM.Length+RM.Breadth+inStk,
+Coilstk <- cast(rmpart1,con ~ SFG_+RM_+con_+RM.Length+RM.Breadth+inStock,
                  value = "CoilStock",
                  fun.aggregate = function (x) ifelse(sum(x)==0,yes = 0,no = 1/max(x)),
                  fill=0)
 
 params$Coilstk <- Coilstk[pairnms]
 
-Cost <- cast(rmpart1,. ~ SFG_+RM_+con_+RM.Length+RM.Breadth+inStk,
+Cost <- cast(rmpart1,. ~ SFG_+RM_+con_+RM.Length+RM.Breadth+inStock,
              value = "totalCost",
              fun.aggregate = max,
              fill=0)

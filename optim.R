@@ -1,3 +1,5 @@
+setwd("\\Users\\Admin\\Documents\\workspace\\Veero Optim")
+
 source("optimDataPrep.R")
 source("optimObj.R")
 library(optimx)
@@ -9,9 +11,14 @@ solObj <- lp(direction = "min",
              ,const.dir = cond
              ,const.rhs = rhs
              # ,transpose.constraints =FALSE
-             # all.int = T
+             # ,all.int = T
 )
 solution <- data.frame(Name = pairnms, qnty = solObj$solution) 
+solution <- cbind(solution, Splitclmn(solution$Name,"_"))
+solution <- solution[solution$qnty !=0,]
+names(solution) <- c(names(solution)[1:2],"SFG", "Sheet","Coil","Length", "Breadth", "Stock")
+solution <- cast(solution, SFG+ Sheet+Coil+Length+ Breadth ~ Stock, value = "qnty",fun.aggregate = max,fill = 0)
+write.csv(solution,"Solution.csv")
 # sol <- solObj$solution
 # print(reqOff(sol,params))
 # sol <- constrOptim(theta = solObj$solution
