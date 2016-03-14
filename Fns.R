@@ -13,11 +13,12 @@ goodsPerRawMet <- function(df){
   sfW <- df$RM.Breadth
   rmT <- df$RM.Width
   rmD <- df$RM.Density
+  rmWst <- df$conWst
   
   nl <- floor(rmL/sfL)
   nw <- floor(rmW/sfW)
   gds <- nl*nw
-  wt <- rmL*rmW*rmT*rmD
+  wt <- rmL*rmW*rmT*rmD*(1+rmWst/100)
   return(gds/wt)
 }
 
