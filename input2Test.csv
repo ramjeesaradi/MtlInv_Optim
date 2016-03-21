@@ -1,0 +1,7 @@
+Material.Code,Plant,Batch,RM.Stock.with.Sizes..Length...Breadth.,Breadth,Thickness,Density,Item.Name,Ware.house.Stock,End.Band,Moving.Average.Price,Lead.Times,Sub.contractor.Stock,Min.Order.Quantity.data
+2110002,,MKO090,2500,1250,2,0.00000785,,0,0,36,6,,
+2110002,,MKO091,2000,1250,2,0.00000785,,0,0,36,6,,
+2110006,,MKO093,,1250,2,0.00000785,,0,0,33,6,,
+2021141,,KKO093,1580,305,3,0.00000785,,0,0,36,6,100,
+2110001,,KKO094,1970,1250,1.5,0.00000785,,200,0,36,6,,
+2110001,,KKO095,2000,1250,1.5,0.00000785,,150,0,36,6,,

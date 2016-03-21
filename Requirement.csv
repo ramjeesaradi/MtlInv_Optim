@@ -1,0 +1,4 @@
+CIR No / Sales order no/Production order no,Plant,CIR/Sales order No./Rejection Production order requirement,Forecast Month,Required delivery  date from today (Days),Manufacturing Lead time (Repleshinshment Lead time),Kit Number,FG Material number,Semi Finished Material Number,Finished/Semi FinishedMaterial Length,Finished/Semi FinishedMaterial Breadth,Raw Material  Number,Raw Material Sizes (Length),Raw Material Sizes (Breadth),Raw Material required quantity,Thickness,Density,Priority List Mentioned in BOM,Moving.Average.Price,Lead.Times
+,1003,500,01-03-2016,45,11,ACRC-501,0M-6489G,870-11410C,294,159.4,2110002,2500,1250,0.82,2,0.00000894,1,36,6
+A1,1003,500,01-03-2016,45,11,ACRC-501,0M-6489G,870-11410C,294,159.4,2110002,2000,1250,0.82,2,0.00000894,2,36,6
+A1,1003,500,01-03-2016,45,11,ACRC-501,0M-6489G,870-11410C,294,159.4,2110006,,1250,0.82,2,0.00000894,3,32,6

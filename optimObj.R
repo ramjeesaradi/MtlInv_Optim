@@ -49,10 +49,17 @@ prmax <- function(sol,params){
   return(sum(cost^2))
 }
 
-getParams <- function(month,wastage.threshold,rmpart,sfgreq) {
+getParams <- function(days,month,wastage.threshold,rmpart) {
   params <- list()
+  params$month <- month
+  params$wastage.threshold <- wastage.threshold
   #Take the req for the month in question
-  rmpart1 <- merge(rmpart[rmpart$totalLead <= (month+1)*30,],sfgreq[sfgreq$month==month,],by.y = "sfg", by.x = "SFG")[,names(rmpart)]
+  params$message <- ""
+  rmpart1 <- rmpart[rmpart$totalLead <= days2delivery & rmpart$month == month, ]
+  if(! nrow(rmpart1 >=1)){
+    rmpart1 <- rmpart[rmpart$month == month, ]
+    params$message <- "Lead over due Date"
+    }
   #Generate Matrices
   #Matrix for Calculating the parts produced
   sfg <- cast(rmpart1,SFG + Req ~ SFG_+RM_+con_+RM.Length+RM.Breadth+Batch_+inStock,
@@ -66,9 +73,16 @@ getParams <- function(month,wastage.threshold,rmpart,sfgreq) {
   # # ifelse(length(x)==4,c(x,""),x[c(1,2,4,5,3)])
   # 
   #Matrix for Calculating the percentage wastage
-  wstprct <- cast(rmpart1,.~ SFG_+RM_+con_+RM.Length+RM.Breadth+Batch_+inStock,
+  WtForwst <- cast(rmpart1,.~ SFG_+RM_+con_+RM.Length+RM.Breadth+Batch_+inStock,
                   value = "tsfgwt",
                   fun.aggregate = function (x) ifelse(sum(x)==0,yes = 0,no = 1/(max(x)*nrow(sfg))),
+                  fill=0)
+  params$WtForwst <- WtForwst[,pairnms]
+  
+  #Wastage percentage
+  wstprct <- cast(rmpart1,SFG ~ SFG_+RM_+con_+RM.Length+RM.Breadth+Batch_+inStock,
+                  value = "wastage",
+                  fun.aggregate = max,
                   fill=0)
   params$wstprct <- wstprct[,pairnms]
   #Stock Matrix after combinig all whare houses
@@ -92,30 +106,36 @@ getParams <- function(month,wastage.threshold,rmpart,sfgreq) {
   
   params$Cost <- Cost[pairnms]
   
-  lhs <- rbind(sfg[,pairnms],wstprct[,pairnms], Sheetstk[,pairnms],Coilstk[,pairnms])
+  Cost1 <- cast(rmpart1,. ~ SFG_+RM_+con_+RM.Length+RM.Breadth+Batch_+inStock,
+               value = "cost1",
+               fun.aggregate = max,
+               fill=0)
+  params$Cost1 <- Cost1[pairnms]
+  
+  #prempting wastage for one to one mapped parts
+  wastage.threshold <- ifelse(max(rmpart1$Priority)>0,99.9,wastage.threshold)
+  
+  lhs <- rbind(sfg[,pairnms],WtForwst[,pairnms], Sheetstk[,pairnms],Coilstk[,pairnms])
+  # lhs <- cbind(lhs,rep(0,nrow(lhs)))
   lhs[is.na(lhs)]<- 0
   params$lhs <- lhs
-  rhs <- c(sfg[,2],rep(100/(100-wastage.threshold),nrow(wstprct)),rep(1,nrow(Sheetstk)),rep(1,nrow(Coilstk)))
+  rhs <- c(sfg[,2],rep(100/(100-wastage.threshold),nrow(WtForwst)),rep(1,nrow(Sheetstk)),rep(1,nrow(Coilstk)))
   rhs[is.na(rhs)]<- 0
   params$rhs <-rhs
-  cond <- c(rep("==",nrow(sfg)),rep("<=",nrow(wstprct)),rep("<=",nrow(Sheetstk)),rep("<=",nrow(Coilstk)))
+  cond <- c(rep("==",nrow(sfg)),rep("<=",nrow(WtForwst)),rep("<=",nrow(Sheetstk)),rep("<=",nrow(Coilstk)))
   params$cond <- cond
   return(params)
 }
 
-runOptim <- function(month,wastage.threshold,rmpart,sfgreq) {
-  params <- getParams(month,wastage.threshold,rmpart,sfgreq)
+runOptim <- function(params) {
+  if(length(params$pairnms)==1){Cost <- as.vector((params$Cost))}else{Cost <-as.vector(t(params$Cost))}
+  params$Cost$N <- 0
   solObj <- lp(direction = "min", 
-               objective.in = as.vector(t(params$Cost)),
+               objective.in = Cost,
                const.mat = params$lhs
                ,const.dir = params$cond
                ,const.rhs = params$rhs
                )
-  solution <- data.frame(Name = params$pairnms, qnty = solObj$solution) 
-  solution <- cbind(solution, Splitclmn(solution$Name,"_"))
-  solution <- solution[solution$qnty !=0,]
-  names(solution) <- c(names(solution)[1:2],"SFG", "Sheet","Coil","Length", "Breadth","Batch", "Stock")
-  solution.out <- cast(solution, SFG+ Sheet+Coil+Length+ Breadth+ Batch ~ Stock, value = "qnty",fun.aggregate = max,fill = 0)
-  write.csv(solution.out,paste(c("Solution",month,wastage.threshold,".csv"),collapse = "_"))
-  return(solution)
+  
+  return(solObj)
 }
