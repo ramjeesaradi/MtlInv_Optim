@@ -10,6 +10,8 @@ getrmpart <- function(requirements,StkInpk,conv) {
   
   requirements$month <- round(difftime(foreCastdt,min(foreCastdt),units = "days")/30)
   
+  requirements <- merge(requirements,requirements)
+  
   # requirements$nsfg <- goodsPerRawMet(rmL = Raw.Material.Sizes..Length.,rmW = Raw.Material.Sizes..Breadth., sfL = Finished.Semi.FinishedMaterial.Sizes..Length...Breadth.,sfW = Breadth)
   
   sfgreq <- aggregate(CIR.Sales.order.No..Rejection.Production.order.requirement~sfg+month,requirements, max)
