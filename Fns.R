@@ -8,13 +8,13 @@ prepSol <- function(sol,rmpart,params){
   solution <- solution[solution$qnty !=0,]
   names(solution) <- c(names(solution)[1:2],"SFG", "Sheet","Coil","Length", "Breadth","Batch", "Stock", "wastage", "Cost", "Remarks")
   solution.out <- cast(solution, SFG+ Sheet+Coil+Length+ Breadth+ Batch + wastage + Cost + Remarks ~ Stock, value = "qnty",fun.aggregate = sum,fill = 0)
-  solution.out <- merge(solution.out,unique(rmpart[rmpart$inStock == "noStock",c("RM", "RM.Length", "RM.Breadth","Lead.Times")]),
+  solution.out <- merge(solution.out,unique(rmpart[rmpart$inStock == "noStock",c("RM", "RM.Length", "RM.Breadth","Lead.Time")]),
                         by.x = c("Sheet", "Length", "Breadth"),
                         by.y = c("RM", "RM.Length", "RM.Breadth"),
                         all.x = T)
   solution.out <- renameCol(solution.out,"inStock", "fromStock")
   solution.out <- renameCol(solution.out,"noStock", "Purchase")
-  # solution.out <- solution.out[,c("SFG","Coil","Sheet","Length", "Breadth","wastage", "Batch", "fromStock", "Purchase","Lead.Times")]
+  # solution.out <- solution.out[,c("SFG","Coil","Sheet","Length", "Breadth","wastage", "Batch", "fromStock", "Purchase","Lead.Time")]
   
   return(solution.out)
 }
@@ -24,7 +24,7 @@ write2Disk <- function(tabl,params,run){
     tabl$Purchase <- 0
   }
   if(!("fromStock" %in% names(tabl))){tabl$fromStock <- 0}
-  tabl <- tabl[,c("SFG","Coil","Sheet","Length","Breadth","Batch","wastage","fromStock","Purchase","Lead.Times", "Cost","Remarks")]
+  tabl <- tabl[,c("Order.no","SFG","Coil","Sheet","Length","Breadth","Batch","wastage","fromStock","Purchase","Lead.Time", "Cost","Remarks")]
   write.csv(tabl,paste(c("Solution_",params$month,"_" ,params$wastage.threshold,"_", run,".csv"),collapse = ""),row.names = F)
 }
 

@@ -49,15 +49,15 @@ prmax <- function(sol,params){
   return(sum(cost^2))
 }
 
-getParams <- function(days,month,wastage.threshold,rmpart) {
+getParams <- function(wastage.threshold,rmpart) {
   params <- list()
   params$month <- month
   params$wastage.threshold <- wastage.threshold
   #Take the req for the month in question
   params$message <- ""
-  rmpart1 <- rmpart[rmpart$totalLead <= days2delivery & rmpart$month == month, ]
+  rmpart1 <- rmpart[rmpart$totalLead <= rmpart$month, ]
   if(! nrow(rmpart1 >=1)){
-    rmpart1 <- rmpart[rmpart$month == month, ]
+    rmpart1 <- rmpart
     params$message <- "Lead over due Date"
     }
   #Generate Matrices
