@@ -1,6 +1,6 @@
 require(dummies)
 
-prepSol <- function(sol,rmpart,params){
+prepSol <- function(sol,rmpart,params,requirements,StkInp){
   solution <- data.frame(Name = params$pairnms, qnty = sol$solution )
   if(length(params$pairnms)==1){
   solution <- cbind(solution, Splitclmn(solution$Name,"_"),as.vector((params$wstprct)), as.vector((params$Cost1)), rep(params$message,nrow(solution)))
@@ -25,7 +25,16 @@ write2Disk <- function(tabl,params,run){
   }
   if(!("fromStock" %in% names(tabl))){tabl$fromStock <- 0}
   tabl <- tabl[,c("Order.no","SFG","Coil","Sheet","Length","Breadth","Batch","wastage","fromStock","Purchase","Lead.Time", "Cost","Remarks")]
-  write.csv(tabl,paste(c("Solution_",params$month,"_" ,params$wastage.threshold,"_", run,".csv"),collapse = ""),row.names = F)
+  output <- merge(requirements, tabl
+                  ,by.x = c("Order.no","SFG.Material.Number","RM.Number","RM.Length","RM.Breadth")
+                  ,by.y = c("Order.no","SFG","Sheet","Length","Breadth")
+                  ,all.x = T)
+  output <- merge( tabl, unique(StkInp[,"Batch","Plant","Location"])
+                  ,by.x = c("Batch")
+                  ,by.y = c("Batch")
+                  ,all.x = T)
+  write.csv(tabl,"output.csv",row.names = F)
+  #TO DO paste(c("Solution_",params$month,"_" ,params$wastage.threshold,"_", run,".csv"),collapse = "")
 }
 
 updateStk <- function(sol,StkInp){
