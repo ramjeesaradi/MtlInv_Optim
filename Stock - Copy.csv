@@ -1,4 +1,4 @@
-Material.Code,Plant,Batch,RM.Stock.with.Sizes..Length...Breadth.,Breadth,Thickness,Density,Ware.house.Stock,End.Band,Moving.Average.Price,Lead.Time,Sub.contractor.Stock,Min.Order.Quantity.data
+RM.Number,Plant,Batch,RM.Stock.Length,RM.Stock.Breadth,RM.Stock.Thickness,RM.Stock.Density,Warehouse.Stock,Type,Moving.Average.Price,Lead.Time,Sub.Con.Stock,MOQ
 2010370,1001,MKO990,2500,1250,2,0.00000785,,0,46,30,,
 2011180,1001,MKO991,,1250,2,0.00000785,,0,43,30,,
 2030001,1001,MKO992,2500,1220,1.2,0.0000028,,0,198,30,,

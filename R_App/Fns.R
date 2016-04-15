@@ -14,7 +14,7 @@ prepSol <- function(sol,rmpart,params,requirements,StkInp){
                         all.x = T)
   solution.out <- renameCol(solution.out,"inStock", "fromStock")
   solution.out <- renameCol(solution.out,"noStock", "Purchase")
-  # solution.out <- solution.out[,c("SFG","Coil","Sheet","Length", "Breadth","wastage", "Batch", "fromStock", "Purchase","Lead.Time")]
+  # solution.out <- solution.out[,c("SFG","Coil","Sheet","Length", "RM.Stock.Breadth","wastage", "Batch", "fromStock", "Purchase","Lead.Time")]
   
   return(solution.out)
 }
@@ -24,17 +24,28 @@ write2Disk <- function(tabl,params,run){
     tabl$Purchase <- 0
   }
   if(!("fromStock" %in% names(tabl))){tabl$fromStock <- 0}
-  tabl <- tabl[,c("Order.no","SFG","Coil","Sheet","Length","Breadth","Batch","wastage","fromStock","Purchase","Lead.Time", "Cost","Remarks")]
-  output <- merge(requirements, tabl
-                  ,by.x = c("Order.no","SFG.Material.Number","RM.Number","RM.Length","RM.Breadth")
-                  ,by.y = c("Order.no","SFG","Sheet","Length","Breadth")
+  tabl <- tabl[,c("Order.no","Item","SFG","Coil","Sheet","Length","Breadth","Batch","wastage","fromStock","Purchase","Lead.Time", "Cost","Remarks")]
+  output0 <- merge(requirements[is.na(requirements$RM.Length) & is.na(requirements$RM.Breadth),!(names(requirements) %in% c("RM.Length","RM.Breadth"))], tabl
+                  ,by.x = c("Order.no","Item","SFG.Material.Number","RM.Number")
+                  ,by.y = c("Order.no","Item","SFG","Sheet")
                   ,all.x = T)
-  output <- merge( tabl, unique(StkInp[,"Batch","Plant","Location"])
-                  ,by.x = c("Batch")
-                  ,by.y = c("Batch")
+  output0 <- renameCol(output0,"Length","RM.Length" )
+  output0 <- renameCol(output0,"Breadth","RM.Breadth" )
+  output1 <- merge(requirements[!is.na(requirements$RM.Breadth),], tabl
+                   ,by.x = c("Order.no","Item","SFG.Material.Number","RM.Number","RM.Length","RM.Breadth")
+                   ,by.y = c("Order.no","Item","SFG","Sheet","Length","Breadth")
+                   ,all.x = T)
+  output <- rbind.fill(output0,output1)
+  StkInp <- renameCol(StkInp,oldname = "Plant", "Stock.Plant")
+  output <- merge( output, unique(StkInp[,c("Batch","Stock.Plant")])
+                   #todo add ,"Location"
+                  ,by = c("Batch")
+                  # ,by.y = c("Batch")
                   ,all.x = T)
-  write.csv(tabl,"output.csv",row.names = F)
-  #TO DO paste(c("Solution_",params$month,"_" ,params$wastage.threshold,"_", run,".csv"),collapse = "")
+  
+  filename <- paste(c("Solution_W",params$wastage.threshold,"_", format(Sys.time(), format = "%Y%m%d_%H%M"),".csv"),collapse = "")
+  write.csv(output,filename,row.names = F,quote = T)
+  #TO DO paste(c("Solution_",params$wastage.threshold,".csv"),collapse = "")
 }
 
 updateStk <- function(sol,StkInp){
@@ -45,16 +56,16 @@ updateStk <- function(sol,StkInp){
   for(i in usedStk$Batch){
     # print(i)
     # print(usedStk$fromStock[usedStk$Batch == i])
-    StkInp$Ware.house.Stock[StkInp$Batch == i]<- round(StkInp$Ware.house.Stock[StkInp$Batch == i] - usedStk$fromStock[usedStk$Batch == i])
+    StkInp$Warehouse.Stock[StkInp$Batch == i]<- round(StkInp$Warehouse.Stock[StkInp$Batch == i] - usedStk$fromStock[usedStk$Batch == i])
   }
   return(StkInp)} else(return(StkInp))
 }
 
 consolStk <- function(StkInp){
-  StkInp$Ware.house.Stock[is.na(StkInp$Ware.house.Stock)] <- 0
-  StkInp$Sub.contractor.Stock[is.na(StkInp$Sub.contractor.Stock)] <- 0
-  StkInp$Ware.house.Stock <- StkInp$Ware.house.Stock + StkInp$Sub.contractor.Stock
-  StkInp$Sub.contractor.Stock <- 0
+  StkInp$Warehouse.Stock[is.na(StkInp$Warehouse.Stock)] <- 0
+  StkInp$Sub.Con.Stock[is.na(StkInp$Sub.Con.Stock)] <- 0
+  StkInp$Warehouse.Stock <- StkInp$Warehouse.Stock + StkInp$Sub.Con.Stock
+  StkInp$Sub.Con.Stock <- 0
   return(StkInp)
 }
 
@@ -100,10 +111,10 @@ wastage <- function(df){
   rmW <- df$RM.Breadth
   sfL <- df$SFG.Length
   sfW <- df$SFG.Breadth
-  #L to L
+  #Sheet.Length to Sheet.Length
   nll <- floor(rmL/sfL)
   nww <- floor(rmW/sfW)
-  #L to W
+  #Sheet.Length to Coil.Width
   nlw <- floor(rmL/sfW)
   nwl <- floor(rmW/sfL)
   
@@ -151,9 +162,9 @@ reqOff <- function(sol,params){
 }
 
 getconWst <- function(df){
-  cW <- df$W
-  sL <- df$L
-  sW <- df$B
+  cW <- df$Coil.Width
+  sL <- df$Sheet.Length
+  sW <- df$Sheet.Breadth
   dW <- sapply(c(1:length(cW)), function (x) ifelse(cW[x]/sW[x] >= 1,(cW[x] - floor(cW[x]/sW[x])*sW[x]),cW[x]))
   dL <- sapply(c(1:length(cW)), function (x) ifelse(cW[x]/sL[x] >= 1,(cW[x] - floor(cW[x]/sL[x])*sL[x]),cW[x]))
   wst <- sapply(c(1:length(cW)), function (x) 100*min(dL[x], dW[x])/cW[x])
