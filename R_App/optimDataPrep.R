@@ -1,7 +1,7 @@
 
 
 getrmpart <- function(requirements,StkInp,conv) {
-  requirements$sfg <- requirements$SFG.Material.Number
+  requirements$sfg <- requirements$SFG.Material
   requirements$sfg <- sapply(requirements$sfg, function (x) gsub("\t", "", x))
   requirements <- requirements[!is.na(requirements$Plant),]
   foreCastdt <-  as.Date(requirements$Req.Delivery.Date,"%d-%m-%Y")
@@ -9,17 +9,17 @@ getrmpart <- function(requirements,StkInp,conv) {
   
   requirements$month <- difftime(as.Date(requirements$Req.Delivery.Date,"%d-%m-%Y"),Sys.Date())
   
-  requirementsCoil <- merge(requirements[!is.na(requirements$RM.Length) & !is.na(requirements$RM.Breadth),],requirements[is.na(requirements$RM.Length) & !is.na(requirements$RM.Breadth),c("RM.Number","SFG.Material.Number")]
-                            ,by = "SFG.Material.Number"
+  requirementsCoil <- merge(requirements[!is.na(requirements$RM.Length) & !is.na(requirements$RM.Breadth),],requirements[is.na(requirements$RM.Length) & !is.na(requirements$RM.Breadth),c("Raw.Material","SFG.Material")]
+                            ,by = "SFG.Material"
                             )
-  requirementsCoil <- renameCol(requirementsCoil,"RM.Number.x","RM.Number")
-  requirementsCoil <- renameCol(requirementsCoil,"RM.Number.y","con")
+  requirementsCoil <- renameCol(requirementsCoil,"Raw.Material.x","Raw.Material")
+  requirementsCoil <- renameCol(requirementsCoil,"Raw.Material.y","con")
   
   requirements <- rbind.fill(requirements,requirementsCoil)
   if(nrow(requirements[is.na(requirements$con), ])>=1){
   requirements[is.na(requirements$con), "con"] <- ""}
   
-  # requirements$nsfg <- goodsPerRawMet(rmL = RM.Length,rmW = RM.Breadth, sfL = FG.SFG.Material.Length,sfW = Breadth)
+  # requirements$nsfg <- goodsPerRawMet(rmL = RM.Length,rmW = RM.Breadth, sfL = FG.SFG.Length,sfW = Breadth)
   
   sfgreq <- aggregate(SFG.Net.Req~sfg+month,requirements, max)
   #######
@@ -27,38 +27,38 @@ getrmpart <- function(requirements,StkInp,conv) {
   ######################################################input 2############################
   
   
-  StkInp$RM.Stock.Length[is.na(StkInp$RM.Stock.Length)] <- 0
-  StkInp$RM.Stock.Breadth[is.na(StkInp$RM.Stock.Breadth)] <- 0
+  StkInp$RM.Length[is.na(StkInp$RM.Length)] <- 0
+  StkInp$RM.Breadth[is.na(StkInp$RM.Breadth)] <- 0
   StkInp$Warehouse.Stock[is.na(StkInp$Warehouse.Stock)] <- 0
   ############################## Assign Priority & 
   
-  requirements$BOM.Priority.List[is.na(requirements$RM.Length) & is.na(requirements$RM.Breadth)]<- 0
-  requirements$BOM.Priority.List[is.na(requirements$BOM.Priority.List)]<- 1
+  requirements$Priority[is.na(requirements$RM.Length) & is.na(requirements$RM.Breadth)]<- 0
+  requirements$Priority[is.na(requirements$Priority)]<- 1
   requirements$RM.Length[is.na(requirements$RM.Length)] <- 0
   requirements$RM.Breadth[is.na(requirements$RM.Breadth)] <- 0
   
   ###################################################### Conv ############################
   #######################Table of Purchasable and convertable RawMaterial###########################################
-  rm1 <- requirements[,c("RM.Number","RM.Breadth","RM.Length","RM.Thickness","RM.Density","Moving.Average.Price","Lead.Time")]
-  # rm2 <- StkInp[StkInp$Type ==1 ,c("RM.Number","RM.Stock.Breadth","RM.Stock.Length","RM.Stock.Thickness","RM.Stock.Density")]
-  rm2 <- StkInp[,c("RM.Number","RM.Stock.Breadth","RM.Stock.Length","RM.Stock.Thickness","RM.Stock.Density","Moving.Average.Price","Lead.Time")]
+  rm1 <- requirements[,c("Raw.Material","RM.Breadth","RM.Length","RM.Thickness","RM.Density","Moving.Average.Price","RM.Lead.Time")]
+  # rm2 <- StkInp[StkInp$Type ==1 ,c("Raw.Material","RM.Breadth","RM.Length","RM.Thickness","RM.Density")]
+  rm2 <- StkInp[,c("Raw.Material","RM.Breadth","RM.Length","RM.Thickness","RM.Density","Moving.Average.Price","RM.Lead.Time")]
   rm3 <- conv[,c("To.Material.Number","Sheet.Breadth","Sheet.Length","Sheet.Thickness","Density","From.Material.Number","Conversion.Cost","Wastage" )]
-  names(rm1) <- c("RM","RM.Breadth","RM.Length","RM.Width","RM.Density", "SheetCost","Lead.Time")
+  names(rm1) <- c("RM","RM.Breadth","RM.Length","RM.Width","RM.Density", "SheetCost","RM.Lead.Time")
   
-  names(rm2) <- c("RM","RM.Breadth","RM.Length","RM.Width","RM.Density", "SheetCost","Lead.Time")
+  names(rm2) <- c("RM","RM.Breadth","RM.Length","RM.Width","RM.Density", "SheetCost","RM.Lead.Time")
   ####Remove coil from the sheet stocks
   # rmS <- rm1[(rm1$RM.Length != 0 | rm1$RM.Breadth != 0),]
   rmS <- rm1[(rm1$RM.Breadth != 0),]
   rmS2 <- rm2[(rm2$RM.Length != 0 | rm2$RM.Breadth != 0),]
-  rmC0 <- merge(rm3,unique(rbind(rm1[(rm1$RM.Length == 0),c("RM","SheetCost","Lead.Time")],
-                                rm2[(rm2$RM.Length == 0),c("RM","SheetCost","Lead.Time")]))
+  rmC0 <- merge(rm3,unique(rbind(rm1[(rm1$RM.Length == 0),c("RM","SheetCost","RM.Lead.Time")],
+                                rm2[(rm2$RM.Length == 0),c("RM","SheetCost","RM.Lead.Time")]))
                ,by.x = "From.Material.Number", by.y = "RM"
                )
-  rmC1 <- merge(rm3,unique(rm1[(rm1$RM.Length == 0),c("RM","SheetCost","Lead.Time")])
+  rmC1 <- merge(rm3,unique(rm1[(rm1$RM.Length == 0),c("RM","SheetCost","RM.Lead.Time")])
                 ,by.x = "From.Material.Number", by.y = "RM"
   )
-  names(rmC0) <- c( "con","RM", "RM.Breadth","RM.Length","RM.Width","RM.Density","conCost","conWst","CoilCost","Lead.Time")
-  names(rmC1) <- c( "con","RM", "RM.Breadth","RM.Length","RM.Width","RM.Density","conCost","conWst","CoilCost","Lead.Time")
+  names(rmC0) <- c( "con","RM", "RM.Breadth","RM.Length","RM.Width","RM.Density","conCost","conWst","CoilCost","RM.Lead.Time")
+  names(rmC1) <- c( "con","RM", "RM.Breadth","RM.Length","RM.Width","RM.Density","conCost","conWst","CoilCost","RM.Lead.Time")
  
    if(nrow(rmS) >= 1){
     rmS[,c("conCost","conWst","CoilCost")] <- 0
@@ -82,14 +82,14 @@ getrmpart <- function(requirements,StkInp,conv) {
   
   ####################################SFG(parts) with their compatible RM########################################
   # rmpart <- merge(rm,requirements,
-  #                 by.x = c("RM","RM.Stock.Breadth","Length"), 
-  #                 by.y =c("RM.Number","RM.Breadth","RM.Length"),
+  #                 by.x = c("RM","RM.Breadth","Length"), 
+  #                 by.y =c("Raw.Material","RM.Breadth","RM.Length"),
   #                 all.x = T)
   
   rmpart0 <- unique(merge(rm0,
-                  unique(requirements[requirements$BOM.Priority.List ==0,c("RM.Number","SFG.Material.Number", "FG.SFG.Material.Length","FG.SFG.Material.Breadth","Mfg.Lead.time","RM.required.quantity")]),
+                  unique(requirements[requirements$Priority ==0,c("Raw.Material","SFG.Material", "FG.SFG.Length","FG.SFG.Breadth","Mfg.Lead.time","RM.Qty.Set")]),
                   by.x = c("RM"), 
-                  by.y =c("RM.Number")
+                  by.y =c("Raw.Material")
                   ,all.y = T))
   names(rmpart0) <- c(names(rm0),"SFG","SFG.Length","SFG.Breadth","Manf.Lead","Qnty")
   if(nrow(rmpart0) >= 1){
@@ -99,17 +99,17 @@ getrmpart <- function(requirements,StkInp,conv) {
   rmpart0$RM.Breadth <- sapply(c(1:nrow(rmpart0)), function (x) ifelse(is.na(rmpart0$RM.Breadth[x]),rmpart0$SFG.Breadth[x],rmpart0$RM.Breadth[x]))
   }
   rmpart1 <- unique(merge(rm1,
-                          unique(requirements[requirements$BOM.Priority.List >=1,c("RM.Number","RM.Breadth","RM.Length","SFG.Material.Number", "FG.SFG.Material.Length","FG.SFG.Material.Breadth","Mfg.Lead.time","BOM.Priority.List","RM.required.quantity","con")]),
+                          unique(requirements[requirements$Priority >=1,c("Raw.Material","RM.Breadth","RM.Length","SFG.Material", "FG.SFG.Length","FG.SFG.Breadth","Mfg.Lead.time","Priority","RM.Qty.Set","con")]),
                           by.x = c("RM","RM.Breadth","RM.Length","con"),
-                          by.y =c("RM.Number","RM.Breadth","RM.Length","con")
+                          by.y =c("Raw.Material","RM.Breadth","RM.Length","con")
                           ))
   # names(rmpart1) <- c(names(rm1),"SFG","SFG.Length","SFG.Breadth","Manf.Lead","Priority", "Qnty")
-  rmpart1 <- renameCol(rmpart1,"SFG.Material.Number","SFG")
-  rmpart1 <- renameCol(rmpart1,"FG.SFG.Material.Length","SFG.Length")
-  rmpart1 <- renameCol(rmpart1,"FG.SFG.Material.Breadth","SFG.Breadth")
+  rmpart1 <- renameCol(rmpart1,"SFG.Material","SFG")
+  rmpart1 <- renameCol(rmpart1,"FG.SFG.Length","SFG.Length")
+  rmpart1 <- renameCol(rmpart1,"FG.SFG.Breadth","SFG.Breadth")
   rmpart1 <- renameCol(rmpart1,"Mfg.Lead.time","Manf.Lead")
-  rmpart1 <- renameCol(rmpart1,"BOM.Priority.List","Priority")
-  rmpart1 <- renameCol(rmpart1,"RM.required.quantity","Qnty")
+  rmpart1 <- renameCol(rmpart1,"Priority","Priority")
+  rmpart1 <- renameCol(rmpart1,"RM.Qty.Set","Qnty")
   
   
   rmpart <- rbind.fill(rmpart0,rmpart1)
@@ -119,18 +119,18 @@ getrmpart <- function(requirements,StkInp,conv) {
   #################################################################################################################
   #Populating sheet And Coil Stocks and Batch
   rmpartSheet <- merge(rmpart[rmpart$con=="",],
-                  StkInp[,!(names(StkInp) %in% "Lead.Time")],
+                  StkInp[,!(names(StkInp) %in% c("RM.Lead.Time","RM.Density"))],
                   by.x = c("RM","RM.Breadth","RM.Length"),
-                  by.y = c("RM.Number","RM.Stock.Breadth","RM.Stock.Length")
+                  by.y = c("Raw.Material","RM.Breadth","RM.Length")
                   ,all.x = T)[,c(names(rmpart),"Warehouse.Stock","Batch","Type")]
   rmpartSheet <- renameCol(rmpartSheet,"Warehouse.Stock", "SheetStock")
   rmpartSheet$SheetCost[rmpartSheet$Type == 1 ] <- 0
-  rmpartSheet$Lead.Time[rmpartSheet$Type == 1 ] <- 0
+  rmpartSheet$RM.Lead.Time[rmpartSheet$Type == 1 ] <- 0
   # rmpartSheet <- renameCol(rmpartSheet, "Moving.Average.Price", "SheetCost")
   rmpartCoil <- merge(rmpart[rmpart$con!="",],
-                  StkInp[StkInp$RM.Stock.Length==0,!(names(StkInp) %in% "Lead.Time")],
+                  StkInp[StkInp$RM.Length==0,!(names(StkInp) %in% c("RM.Lead.Time","RM.Density","RM.Length","RM.Breadth"))],
                   by.x = c("con")
-                  ,by.y = c("RM.Number")
+                  ,by.y = c("Raw.Material")
                   ,all.x = T)[,c(names(rmpart),"Warehouse.Stock","Batch")]
   rmpartCoil <- renameCol(rmpartCoil,"Warehouse.Stock", "CoilStock")
   # rmpartCoil <- renameCol(rmpartCoil, "Moving.Average.Price", "CoilCost")
@@ -159,14 +159,14 @@ getrmpart <- function(requirements,StkInp,conv) {
     rmpartShinStock$SheetCost <- 0
     rmpartShinStock$CoilCost <- 0
     rmpartShinStock$CoilStock <- 0
-    rmpartShinStock$Lead.Time <- 0
+    rmpartShinStock$RM.Lead.Time <- 0
     }
   
   if(nrow(rmpartCoinStock) != 0){
     rmpartCoinStock$inStock <- "inStock"
     rmpartCoinStock$CoilCost <- 0
     rmpartCoinStock$SheetCost <- 0
-    rmpartCoinStock$Lead.Time <- 0
+    rmpartCoinStock$RM.Lead.Time <- 0
     }
   #
   rmpart$CoilStock <- 0
@@ -205,7 +205,7 @@ getrmpart <- function(requirements,StkInp,conv) {
   
   rmpart$cost1 <- rmpart$conCost + rmpart$SheetCost + rmpart$CoilCost
   ###########################Generate Total Lead for each SFG #########################################
-  rmpart$totalLead <- rmpart$Manf.Lead + rmpart$Lead.Time
+  rmpart$totalLead <- rmpart$Manf.Lead + rmpart$RM.Lead.Time
   ######################## Apply Filters to Clean master table#########################
   #Create duplicate coulumns for casting/pivoting to matrix
   rmpart[is.na(as.matrix(rmpart))] <- 0

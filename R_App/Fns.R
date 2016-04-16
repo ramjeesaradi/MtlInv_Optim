@@ -8,13 +8,10 @@ prepSol <- function(sol,rmpart,params,requirements,StkInp){
   solution <- solution[solution$qnty !=0,]
   names(solution) <- c(names(solution)[1:2],"SFG", "Sheet","Coil","Length", "Breadth","Batch", "Stock", "wastage", "Cost", "Remarks")
   solution.out <- cast(solution, SFG+ Sheet+Coil+Length+ Breadth+ Batch + wastage + Cost + Remarks ~ Stock, value = "qnty",fun.aggregate = sum,fill = 0)
-  solution.out <- merge(solution.out,unique(rmpart[rmpart$inStock == "noStock",c("RM", "RM.Length", "RM.Breadth","Lead.Time")]),
-                        by.x = c("Sheet", "Length", "Breadth"),
-                        by.y = c("RM", "RM.Length", "RM.Breadth"),
-                        all.x = T)
+  
   solution.out <- renameCol(solution.out,"inStock", "fromStock")
   solution.out <- renameCol(solution.out,"noStock", "Purchase")
-  # solution.out <- solution.out[,c("SFG","Coil","Sheet","Length", "RM.Stock.Breadth","wastage", "Batch", "fromStock", "Purchase","Lead.Time")]
+  # solution.out <- solution.out[,c("SFG","Coil","Sheet","Length", "RM.Breadth","wastage", "Batch", "fromStock", "Purchase","RM.Lead.Time")]
   
   return(solution.out)
 }
@@ -24,27 +21,27 @@ write2Disk <- function(tabl,params,run){
     tabl$Purchase <- 0
   }
   if(!("fromStock" %in% names(tabl))){tabl$fromStock <- 0}
-  tabl <- tabl[,c("Order.no","Item","SFG","Coil","Sheet","Length","Breadth","Batch","wastage","fromStock","Purchase","Lead.Time", "Cost","Remarks")]
+  tabl <- tabl[,c("Order.No","Item","SFG","Coil","Sheet","Length","Breadth","Batch","wastage","fromStock","Purchase", "Cost","Remarks")]
   output0 <- merge(requirements[is.na(requirements$RM.Length) & is.na(requirements$RM.Breadth),!(names(requirements) %in% c("RM.Length","RM.Breadth"))], tabl
-                  ,by.x = c("Order.no","Item","SFG.Material.Number","RM.Number")
-                  ,by.y = c("Order.no","Item","SFG","Sheet")
+                  ,by.x = c("Order.No","Item","SFG.Material","Raw.Material")
+                  ,by.y = c("Order.No","Item","SFG","Sheet")
                   ,all.x = T)
   output0 <- renameCol(output0,"Length","RM.Length" )
   output0 <- renameCol(output0,"Breadth","RM.Breadth" )
   output1 <- merge(requirements[!is.na(requirements$RM.Breadth),], tabl
-                   ,by.x = c("Order.no","Item","SFG.Material.Number","RM.Number","RM.Length","RM.Breadth")
-                   ,by.y = c("Order.no","Item","SFG","Sheet","Length","Breadth")
+                   ,by.x = c("Order.No","Item","SFG.Material","Raw.Material","RM.Length","RM.Breadth")
+                   ,by.y = c("Order.No","Item","SFG","Sheet","Length","Breadth")
                    ,all.x = T)
   output <- rbind.fill(output0,output1)
   StkInp <- renameCol(StkInp,oldname = "Plant", "Stock.Plant")
-  output <- merge( output, unique(StkInp[,c("Batch","Stock.Plant")])
+  output <- merge( output, unique(StkInp[,c("Batch","Storage.Location")])
                    #todo add ,"Location"
                   ,by = c("Batch")
                   # ,by.y = c("Batch")
                   ,all.x = T)
   
   filename <- paste(c("Solution_W",params$wastage.threshold,"_", format(Sys.time(), format = "%Y%m%d_%H%M"),".csv"),collapse = "")
-  write.csv(output,filename,row.names = F,quote = T)
+  write.csv(output,filename,row.names = F,quote = T,na = "")
   #TO DO paste(c("Solution_",params$wastage.threshold,".csv"),collapse = "")
 }
 
@@ -63,9 +60,10 @@ updateStk <- function(sol,StkInp){
 
 consolStk <- function(StkInp){
   StkInp$Warehouse.Stock[is.na(StkInp$Warehouse.Stock)] <- 0
-  StkInp$Sub.Con.Stock[is.na(StkInp$Sub.Con.Stock)] <- 0
-  StkInp$Warehouse.Stock <- StkInp$Warehouse.Stock + StkInp$Sub.Con.Stock
-  StkInp$Sub.Con.Stock <- 0
+  StkInp$Subcon.Stock[is.na(StkInp$Subcon.Stock)] <- 0
+  StkInp$Warehouse.Stock <- StkInp$Warehouse.Stock + StkInp$Subcon.Stock
+  StkInp$Subcon.Stock <- 0
+  StkInp$Batch <- do.call(paste,c(StkInp[,c("Batch","Plant")],sep = "-"))
   return(StkInp)
 }
 
