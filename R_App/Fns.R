@@ -39,9 +39,21 @@ write2Disk <- function(tabl,params,run){
                   ,by = c("Batch")
                   # ,by.y = c("Batch")
                   ,all.x = T)
+  output <- cbind(output,Splitclmn(output$Batch,"-",outcols = 4))
+  output <- rmclmn(output,"Batch")
+  output <- renameCol(output,"1","Batch")
+  output <- renameCol(output,"2","Plant.Considered")
+  output <- renameCol(output,"3","PO.Number")
+  output <- renameCol(output,"4","PR.Number")
+  output$fromPR <- sapply(1:nrow(output)
+                          , function (x) ifelse(output$PR.Number[x] != " ",output$fromStock[x],0))
+  output$fromPO <- sapply(1:nrow(output)
+                          , function (x) ifelse(output$PO.Number[x] != " ",output$fromStock[x],0))
   
-  filename <- paste(c("Solution_W",params$wastage.threshold,"_", format(Sys.time(), format = "%Y%m%d_%H%M"),".csv"),collapse = "")
-  write.csv(output,filename,row.names = F,quote = T,na = "")
+  output <- output[,c("Order.No","Item","Plant","Order.Req","Forecast.Date","Req.Delivery.Date","Mfg.Lead.time","KIT.Material","FG.Material","FG.Net.Req","SFG.Material","SFG.Net.Req","FG.SFG.Length","FG.SFG.Breadth","Coil","Raw.Material","RM.Length","RM.Breadth","RM.Qty.Set","Priority","Plant.Considered","Batch","Storage.Location","fromStock","Purchase","wastage","Remarks", "PO.Number", "PR.Number", "fromPR","fromPR")]
+  
+  filename <- paste(c("R_Output/R_Sol_",run,"_", format(Sys.time(), format = "%Y%m%d_%H%M%S"),".csv"),collapse = "")
+  write.csv(output,filename,row.names = F,quote = F,na = "")
   #TO DO paste(c("Solution_",params$wastage.threshold,".csv"),collapse = "")
 }
 
@@ -54,16 +66,30 @@ updateStk <- function(sol,StkInp){
     # print(i)
     # print(usedStk$fromStock[usedStk$Batch == i])
     StkInp$Warehouse.Stock[StkInp$Batch == i]<- round(StkInp$Warehouse.Stock[StkInp$Batch == i] - usedStk$fromStock[usedStk$Batch == i])
+    # StkInp$Warehouse.Stock[StkInp$Warehouse.Stock < 1e-4] <- 0
   }
   return(StkInp)} else(return(StkInp))
 }
 
 consolStk <- function(StkInp){
+  StkInpPR <- rmclmn(StkInp,c("PO.Number", "Open.PO.s"))
+  StkInpPO <- rmclmn(StkInp,c("PR.Number", "Open.PR.s"))
+  StkInp <- unique(rbind.fill(StkInpPO,StkInpPR))
+  StkInp <- StkInp[!((is.na(StkInp$Batch) | StkInp$Batch == "" ) & is.na(StkInp$PO.Number) & is.na(StkInp$PR.Number)),]
+  
   StkInp$Warehouse.Stock[is.na(StkInp$Warehouse.Stock)] <- 0
+  StkInp$Open.PR.s[is.na(StkInp$Open.PR.s)] <- 0
+  StkInp$Open.PO.s[is.na(StkInp$Open.PO.s)] <- 0
   StkInp$Subcon.Stock[is.na(StkInp$Subcon.Stock)] <- 0
-  StkInp$Warehouse.Stock <- StkInp$Warehouse.Stock + StkInp$Subcon.Stock
-  StkInp$Subcon.Stock <- 0
-  StkInp$Batch <- do.call(paste,c(StkInp[,c("Batch","Plant")],sep = "-"))
+  StkInp$Warehouse.Stock <- StkInp$Warehouse.Stock + StkInp$Open.PO.s + StkInp$Open.PR.s
+  
+  # StkInp$Warehouse.Stock <- StkInp$Warehouse.Stock + StkInp$Subcon.Stock
+  # StkInp$Subcon.Stock <- 0
+  
+  StkInp$PO.Number[is.na(StkInp$PO.Number)] <- " "
+  StkInp$PR.Number[is.na(StkInp$PR.Number)] <- " "
+  
+  StkInp$Batch <- do.call(paste,c(StkInp[,c("Batch","Plant", "PO.Number", "PR.Number")],sep = "-"))
   return(StkInp)
 }
 
@@ -146,8 +172,8 @@ rmclmn<- function(df, clmns){
   return(df[,!(names(df) %in% clmns)])
 }
 
-Splitclmn <- function(col,Split){
-  out.df <- t(as.data.frame(sapply(col, function (x) strsplit(as.character(x), "_"))))
+Splitclmn <- function(col,Split,outcols = 2){
+  out.df <- t(as.data.frame(sapply(col, function (x) ifelse(x=="",c(rep("",outcols)),strsplit(as.character(x), Split)))))
   row.names(out.df) <- NULL
   return(out.df)
 }

@@ -200,9 +200,9 @@ getrmpart <- function(requirements,StkInp,conv) {
   
   ###########################Generate Total Costs for each material #########################################
   rmpart$totalCost <- rmpart$conCost + rmpart$SheetCost + rmpart$CoilCost + rmpart$WstCost*(rmpart$wastage)/100
-  rmpart$totalCost <- sapply(c(1:nrow(rmpart)),
-                        function (x) ifelse(rmpart[x,"Priority"]>=1,rmpart[x,"Priority"],rmpart[x,"totalCost"]))
-  
+  # rmpart$totalCost <- sapply(c(1:nrow(rmpart)),
+  #                       function (x) ifelse(rmpart[x,"Priority"]>=1,rmpart[x,"Priority"],rmpart[x,"totalCost"]))
+  # 
   rmpart$cost1 <- rmpart$conCost + rmpart$SheetCost + rmpart$CoilCost
   ###########################Generate Total Lead for each SFG #########################################
   rmpart$totalLead <- rmpart$Manf.Lead + rmpart$RM.Lead.Time

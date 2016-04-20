@@ -17,7 +17,7 @@ source("R_App/optimDataPrep.R")
 source("R_App/optimObj.R")
 
 requirements <- read.csv(list.files(path = "R_Requirement/",pattern =".*",full.names = T))
-StkInp <- read.csv(list.files(path = "R_Stock/",pattern ="Stoc.*",full.names = T))
+StkInp <- read.csv(list.files(path = "R_Stock/",pattern =".*",full.names = T))
 StkInp <- consolStk(StkInp)
 conv <- read.csv("R_Conversion Cost & Wastage/conversion.csv")
 wst <- as.vector(read.csv("R_Conversion Cost & Wastage/Wastage.csv"))
@@ -26,11 +26,11 @@ output <- data.frame()
 
 for(i in unique(requirements[,c("Order.No")]))
 {
-  for(j in unique(requirements[,c("Item")]))
+  for(j in unique(requirements[(requirements$Order.No == i),c("Item")]))
   {
-    rmpart <- getrmpart(requirements[(requirements$Order.No == i & requirements$Item == j),],StkInp,conv)
-    for(k in unique(rmpart[rmpart$Req > 0 ,]$SFG)){
-      params <- getParams(wst[[1]],rmpart[rmpart$SFG == k ,])
+    for(k in unique(requirements[(requirements$Order.No == i & requirements$Item == j),"SFG.Material"])){
+      rmpart <- getrmpart(requirements[(requirements$Order.No == i & requirements$Item == j & requirements$SFG.Material == k),],StkInp,conv)
+      params <- getParams(wst[[1]],rmpart)
       solobj <- runOptim(params)
       sol <- prepSol(solobj,rmpart,params)
       sol$Order.No <- i
@@ -45,4 +45,4 @@ for(i in unique(requirements[,c("Order.No")]))
   }
 }
 
-write2Disk(output,params,"part")
+write2Disk(output,params,unique(requirements$Plant)[1])
