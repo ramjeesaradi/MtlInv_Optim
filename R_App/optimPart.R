@@ -16,8 +16,17 @@ source("R_App/Fns.R")
 source("R_App/optimDataPrep.R")
 source("R_App/optimObj.R")
 
-requirements <- read.csv(list.files(path = "R_Requirement/",pattern =".*",full.names = T))
-StkInp <- read.csv(list.files(path = "R_Stock/",pattern =".*",full.names = T))
+requirements <- read.csv(list.files(path = "R_Requirement/",pattern ="R_.*",full.names = T),sep = " ")
+StkInp <- read.csv(list.files(path = "R_Stock/",pattern ="R_.*",full.names = T),sep = " ")
+################################################
+#to be removed when PR and PO are included
+StkInp$PO.Number <- NULL
+StkInp$PR.Number <- NULL
+StkInp$Open.PO.s <- NULL
+StkInp$Open.PO.s <- NULL
+StkInp <- StkInp[!is.na(StkInp$RM.Breadth),]
+################################################
+
 StkInp <- consolStk(StkInp)
 conv <- read.csv("R_Conversion Cost & Wastage/conversion.csv")
 wst <- as.vector(read.csv("R_Conversion Cost & Wastage/Wastage.csv"))

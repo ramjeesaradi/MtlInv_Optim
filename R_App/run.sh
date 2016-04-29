@@ -1,5 +1,5 @@
 #!/bin/bash
-DIR="/usr/sap/V01"
+DIR="/usr/rfolder"
 DIR1="$DIR/R_Requirement"
 DIR2="$DIR/R_Stock"
 # init

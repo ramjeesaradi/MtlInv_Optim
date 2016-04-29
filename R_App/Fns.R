@@ -50,7 +50,7 @@ write2Disk <- function(tabl,params,run){
   output$fromPO <- sapply(1:nrow(output)
                           , function (x) ifelse(output$PO.Number[x] != " ",output$fromStock[x],0))
   
-  output <- output[,c("Order.No","Item","Plant","Order.Req","Forecast.Date","Req.Delivery.Date","Mfg.Lead.time","KIT.Material","FG.Material","FG.Net.Req","SFG.Material","SFG.Net.Req","FG.SFG.Length","FG.SFG.Breadth","Coil","Raw.Material","RM.Length","RM.Breadth","RM.Qty.Set","Priority","Plant.Considered","Batch","Storage.Location","fromStock","Purchase","wastage","Remarks", "PO.Number", "PR.Number", "fromPR","fromPR")]
+  output <- output[,c("Order.No","Item","Plant","Order.Req","Forecast.Date","Req.Delivery.Date","Mfg.Lead.time","KIT.Material","FG.Material","FG.Net.Req","SFG.Material","SFG.Net.Req","FG.SFG.Length","FG.SFG.Breadth","Coil","Raw.Material","RM.Length","RM.Breadth","RM.Qty.Set","Priority","Plant.Considered","Batch","Storage.Location","fromStock","Purchase","wastage","Remarks", "PO.Number", "PR.Number", "fromPO","fromPR")]
   
   filename <- paste(c("R_Output/R_Sol_",run,"_", format(Sys.time(), format = "%Y%m%d_%H%M%S"),".csv"),collapse = "")
   write.csv(output,filename,row.names = F,quote = F,na = "")
