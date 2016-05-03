@@ -51,9 +51,11 @@ write2Disk <- function(tabl,params,run){
                           , function (x) ifelse(output$PO.Number[x] != " ",output$fromStock[x],0))
   
   output <- output[,c("Order.No","Item","Plant","Order.Req","Forecast.Date","Req.Delivery.Date","Mfg.Lead.time","KIT.Material","FG.Material","FG.Net.Req","SFG.Material","SFG.Net.Req","FG.SFG.Length","FG.SFG.Breadth","Coil","Raw.Material","RM.Length","RM.Breadth","RM.Qty.Set","Priority","Plant.Considered","Batch","Storage.Location","fromStock","Purchase","wastage","Remarks", "PO.Number", "PR.Number", "fromPO","fromPR")]
-  
-  filename <- paste(c("R_Output/R_Sol_",run,"_", format(Sys.time(), format = "%Y%m%d_%H%M%S"),".csv"),collapse = "")
+  ## to add when time sstamp is needed ,"_", format(Sys.time(), format = "%Y%m%d_%H%M%S")
+  filename <- paste(c("R_Output/R_Sol_",run,"_",format(Sys.time(), format = "%Y%m%d_%H%M%S"),".csv"),collapse = "")
+  filename1 <- paste(c("R_Output/R_Sol_",run,".csv"),collapse = "")
   write.csv(output,filename,row.names = F,quote = F,na = "")
+  write.csv(output,filename1,row.names = F,quote = F,na = "")
   #TO DO paste(c("Solution_",params$wastage.threshold,".csv"),collapse = "")
 }
 
@@ -80,7 +82,7 @@ consolStk <- function(StkInp){
   StkInp$Warehouse.Stock[is.na(StkInp$Warehouse.Stock)] <- 0
   StkInp$Open.PR.s[is.na(StkInp$Open.PR.s)] <- 0
   StkInp$Open.PO.s[is.na(StkInp$Open.PO.s)] <- 0
-  StkInp$Subcon.Stock[is.na(StkInp$Subcon.Stock)] <- 0
+  # StkInp$Subcon.Stock[is.na(StkInp$Subcon.Stock)] <- 0
   StkInp$Warehouse.Stock <- StkInp$Warehouse.Stock + StkInp$Open.PO.s + StkInp$Open.PR.s
   
   # StkInp$Warehouse.Stock <- StkInp$Warehouse.Stock + StkInp$Subcon.Stock
@@ -107,16 +109,19 @@ goodsPerRawMet <- function(df){
   rmT <- df$RM.Width
   rmD <- df$RM.Density
   rmWst <- df$conWst
-  Qnty <- df$Qnty
   
-  for(i in 1:nrow(df)){if(is.na(Qnty[i])){
-    nl <- floor(rmL[i]/sfL[i])
-    nw <- floor((rmW[i])/sfW[i])
-    gds <- nl*nw
-    wt <- rmL[i]*rmW[i]*rmT[i]*rmD[i]*(1+rmWst[i]/100)
-    Qnty2 <- gds/wt
-    Qnty[i] <- Qnty2
-  }}
+  rmWt <- rmL*rmW*rmT*rmD*(1+(rmWst/100))
+  
+  nll <- floor(rmL/sfL)*floor(rmW/sfW)
+  nlw <- floor(rmW/sfL)*floor(rmL/sfW)
+  
+  Qnty <- df$Qnty
+  priority <- df$Priority
+  Qnty <- sapply(c(1:length(Qnty))
+               , function (x){
+                 ifelse(priority[x]==0,
+                    (max(c(nll[x],nlw[x]))*1000000/rmWt[x])
+                 ,Qnty[x])})
   
   return(Qnty)
 }

@@ -51,12 +51,11 @@ prmax <- function(sol,params){
 
 getParams <- function(wastage.threshold,rmpart) {
   params <- list()
-  params$month <- month
   params$wastage.threshold <- wastage.threshold
   #Take the req for the month in question
   params$message <- ""
-  rmpart1 <- rmpart[rmpart$totalLead <= rmpart$month, ]
-  if(! nrow(rmpart1 >=1)){
+  rmpart1 <- rmpart[rmpart$totalLead <= rmpart$duein, ]
+  if(!(nrow(rmpart1) >=1)){
     rmpart1 <- rmpart
     params$message <- "Lead over due Date"
     }

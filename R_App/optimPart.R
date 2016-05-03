@@ -16,14 +16,18 @@ source("R_App/Fns.R")
 source("R_App/optimDataPrep.R")
 source("R_App/optimObj.R")
 
-requirements <- read.csv(list.files(path = "R_Requirement/",pattern ="R_.*",full.names = T),sep = " ")
-StkInp <- read.csv(list.files(path = "R_Stock/",pattern ="R_.*",full.names = T),sep = " ")
+requirements <- read.csv(list.files(path = "R_Requirement/",pattern ="R_.*",full.names = T))
+requirements$Order.No <- as.factor(requirements$Order.No)
+requirements <- requirements[!is.na(requirements$Raw.Material),]
+
+StkInp <- read.csv(list.files(path = "R_Stock/",pattern ="R_.*",full.names = T))
+
 ################################################
 #to be removed when PR and PO are included
-StkInp$PO.Number <- NULL
-StkInp$PR.Number <- NULL
-StkInp$Open.PO.s <- NULL
-StkInp$Open.PO.s <- NULL
+StkInp$PO.Number <- NA
+StkInp$PR.Number <- NA
+StkInp$Open.PO.s <- NA
+StkInp$Open.PR.s <- NA
 StkInp <- StkInp[!is.na(StkInp$RM.Breadth),]
 ################################################
 

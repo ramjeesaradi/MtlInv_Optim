@@ -4,12 +4,13 @@ getrmpart <- function(requirements,StkInp,conv) {
   requirements$sfg <- requirements$SFG.Material
   requirements$sfg <- sapply(requirements$sfg, function (x) gsub("\t", "", x))
   requirements <- requirements[!is.na(requirements$Plant),]
-  foreCastdt <-  as.Date(requirements$Req.Delivery.Date,"%d-%m-%Y")
+  foreCastdt <-  as.Date(as.factor(requirements$Req.Delivery.Date), "%d.%m.%Y")
   
   
-  requirements$month <- difftime(as.Date(requirements$Req.Delivery.Date,"%d-%m-%Y"),Sys.Date())
+  requirements$duein <- difftime(as.Date(as.factor(requirements$Req.Delivery.Date),"%d.%m.%Y"),Sys.Date())
   
-  requirementsCoil <- merge(requirements[!is.na(requirements$RM.Length) & !is.na(requirements$RM.Breadth),],requirements[is.na(requirements$RM.Length) & !is.na(requirements$RM.Breadth),c("Raw.Material","SFG.Material")]
+  requirementsCoil <- merge(requirements[!(requirements$RM.Length==0) & !(requirements$RM.Breadth==0),]
+                            ,requirements[(requirements$RM.Length==0) & !(requirements$RM.Breadth==0),c("Raw.Material","SFG.Material")]
                             ,by = "SFG.Material"
                             )
   requirementsCoil <- renameCol(requirementsCoil,"Raw.Material.x","Raw.Material")
@@ -21,8 +22,9 @@ getrmpart <- function(requirements,StkInp,conv) {
   
   # requirements$nsfg <- goodsPerRawMet(rmL = RM.Length,rmW = RM.Breadth, sfL = FG.SFG.Length,sfW = Breadth)
   
-  sfgreq <- aggregate(SFG.Net.Req~sfg+month,requirements, max)
+  sfgreq <- aggregate(SFG.Net.Req~sfg+duein,requirements, max)
   #######
+  StkInp <- StkInp[StkInp$Warehouse.Stock > 0, ]
   StkInp$Type <- sapply(StkInp$Type, function (x) ifelse(x=="END BAND", 1,0))
   ######################################################input 2############################
   
@@ -30,12 +32,11 @@ getrmpart <- function(requirements,StkInp,conv) {
   StkInp$RM.Length[is.na(StkInp$RM.Length)] <- 0
   StkInp$RM.Breadth[is.na(StkInp$RM.Breadth)] <- 0
   StkInp$Warehouse.Stock[is.na(StkInp$Warehouse.Stock)] <- 0
-  ############################## Assign Priority & 
+  ############################## Assign Priority ##############
   
-  requirements$Priority[is.na(requirements$RM.Length) & is.na(requirements$RM.Breadth)]<- 0
-  requirements$Priority[is.na(requirements$Priority)]<- 1
-  requirements$RM.Length[is.na(requirements$RM.Length)] <- 0
-  requirements$RM.Breadth[is.na(requirements$RM.Breadth)] <- 0
+  requirements$Priority[requirements$Priority == 0]<- 1
+  
+  requirements$Priority[requirements$RM.Breadth == 0]<- 0
   
   ###################################################### Conv ############################
   #######################Table of Purchasable and convertable RawMaterial###########################################
@@ -87,11 +88,11 @@ getrmpart <- function(requirements,StkInp,conv) {
   #                 all.x = T)
   
   rmpart0 <- unique(merge(rm0,
-                  unique(requirements[requirements$Priority ==0,c("Raw.Material","SFG.Material", "FG.SFG.Length","FG.SFG.Breadth","Mfg.Lead.time","RM.Qty.Set")]),
+                  unique(requirements[requirements$Priority ==0,c("Raw.Material","SFG.Material", "FG.SFG.Length","FG.SFG.Breadth","Mfg.Lead.time","RM.Qty.Set","Priority")]),
                   by.x = c("RM"), 
                   by.y =c("Raw.Material")
                   ,all.y = T))
-  names(rmpart0) <- c(names(rm0),"SFG","SFG.Length","SFG.Breadth","Manf.Lead","Qnty")
+  names(rmpart0) <- c(names(rm0),"SFG","SFG.Length","SFG.Breadth","Manf.Lead","Qnty","Priority")
   if(nrow(rmpart0) >= 1){
   rmpart0$Qnty <- sapply(c(1:nrow(rmpart0)), function (x) ifelse(is.na(rmpart0$RM.Length[x]),rmpart0$Qnty[x],NA))
   rmpart0$con <- sapply(c(1:nrow(rmpart0)), function (x) ifelse(is.na(rmpart0$RM.Length[x]),"",rmpart0$con[x]))
@@ -185,7 +186,7 @@ getrmpart <- function(requirements,StkInp,conv) {
                   sfgreq,
                   by.x = c("SFG"),
                   by.y = c( "sfg"),
-                  all.x = T)[,c(names(rmpart),"SFG.Net.Req","month")]
+                  all.x = T)[,c(names(rmpart),"SFG.Net.Req","duein")]
   rmpart <- renameCol(rmpart,"SFG.Net.Req", "Req")
   
   ##########################################################################################################
