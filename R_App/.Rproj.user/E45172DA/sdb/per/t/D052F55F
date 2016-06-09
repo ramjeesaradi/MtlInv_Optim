@@ -1,0 +1,28 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1464688736309.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "D052F55F",
+    "lastKnownWriteTime" : 1464687884,
+    "last_content_update" : 1464688736309,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "jzoosfqgyg",
+        "caption" : "sol",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=sol&cache_key=jzoosfqgyg",
+        "displayedObservations" : 1,
+        "environment" : "",
+        "object" : "sol",
+        "totalObservations" : 1,
+        "variables" : 12
+    },
+    "relative_order" : 8,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

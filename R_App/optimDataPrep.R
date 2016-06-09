@@ -1,20 +1,21 @@
 
-
 getrmpart <- function(requirements,StkInp,conv) {
   requirements$sfg <- requirements$SFG.Material
   requirements$sfg <- sapply(requirements$sfg, function (x) gsub("\t", "", x))
   requirements <- requirements[!is.na(requirements$Plant),]
   foreCastdt <-  as.Date(as.factor(requirements$Req.Delivery.Date), "%d.%m.%Y")
-  
+  plant <- unique(requirements$Plant)[1]
   
   requirements$duein <- difftime(as.Date(as.factor(requirements$Req.Delivery.Date),"%d.%m.%Y"),Sys.Date())
   
   requirementsCoil <- merge(requirements[!(requirements$RM.Length==0) & !(requirements$RM.Breadth==0),]
-                            ,requirements[(requirements$RM.Length==0) & !(requirements$RM.Breadth==0),c("Raw.Material","SFG.Material")]
+                            ,requirements[(requirements$RM.Length==0) & !(requirements$RM.Breadth==0),c("Raw.Material","SFG.Material","Priority")]
                             ,by = "SFG.Material"
                             )
   requirementsCoil <- renameCol(requirementsCoil,"Raw.Material.x","Raw.Material")
   requirementsCoil <- renameCol(requirementsCoil,"Raw.Material.y","con")
+  requirementsCoil <- renameCol(requirementsCoil,"Priority.y","Priority")
+  requirementsCoil <- rmclmn(requirementsCoil,"Priority.x")
   
   requirements <- rbind.fill(requirements,requirementsCoil)
   if(nrow(requirements[is.na(requirements$con), ])>=1){
@@ -145,7 +146,8 @@ getrmpart <- function(requirements,StkInp,conv) {
   
   ########################### Separate entries for each RM with Stock and with out stock ###############################
 
-  rmpart[,"inStock"] <- NA
+  if(nrow(rmpart) >= 1){rmpart[,"inStock"] <- NA}
+  rmpart$Type[(rmpart$Type=="NULL")] <- 0
   rmpartShinStock <- rmpart[rmpart$SheetStock > 0 & rmpart$Type != 1,]
   rmpartCoinStock <- rmpart[rmpart$CoilStock > 0,]
   #Eliminating noStock entry for EndBands
@@ -170,9 +172,9 @@ getrmpart <- function(requirements,StkInp,conv) {
     rmpartCoinStock$RM.Lead.Time <- 0
     }
   #
-  rmpart$CoilStock <- 0
-  rmpart$SheetStock <- 0
-  rmpart <- rbind(rmpart,rmpartShinStock,rmpartCoinStock)
+  if(nrow(rmpart) >= 1){rmpart$CoilStock <- 0}
+  rmpart$SheetStock[rmpart$Type != 1] <- 0
+  rmpart <- rbind.fill(rmpart,rmpartShinStock,rmpartCoinStock)
   rmpart$inStock[is.na(rmpart$inStock)] <- "noStock"
   
   
@@ -197,13 +199,14 @@ getrmpart <- function(requirements,StkInp,conv) {
   rmpart[,"Qnty"] <- goodsPerRawMet(rmpart)
   #Assign wastage for RM,SFG pairs
   rmpart$wastage <- wastage(rmpart) + rmpart$conWst
-  rmpart$tsfgwt <- sfgwt(rmpart)*rmpart$Req
-  
+  # rmpart$tsfgwt <- sfgwt(rmpart)*rmpart$Req
+  rmpart$diffPlant <- diffPlant(plant,rmpart$Batch)
   ###########################Generate Total Costs for each material #########################################
   rmpart$totalCost <- rmpart$conCost + rmpart$SheetCost + rmpart$CoilCost + rmpart$WstCost*(rmpart$wastage)/100
   # rmpart$totalCost <- sapply(c(1:nrow(rmpart)),
   #                       function (x) ifelse(rmpart[x,"Priority"]>=1,rmpart[x,"Priority"],rmpart[x,"totalCost"]))
   # 
+  rmpart$totalCost <- rmpart$totalCost*(1+0.01*rmpart$diffPlant)
   rmpart$cost1 <- rmpart$conCost + rmpart$SheetCost + rmpart$CoilCost
   ###########################Generate Total Lead for each SFG #########################################
   rmpart$totalLead <- rmpart$Manf.Lead + rmpart$RM.Lead.Time
@@ -222,7 +225,3 @@ getrmpart <- function(requirements,StkInp,conv) {
 }
 
 ##########################################################################################################
-
-# sfg0 <- rbind(sfg0,sfg0wst)
-
-# params$sfg0 <- sfg0

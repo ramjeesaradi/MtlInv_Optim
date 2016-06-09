@@ -1,2 +1,3 @@
 #!/bin/bash
-nohup /run.sh > /log.txt 2>&1 < /dev/null &
+chmod +x /usr/rfolder/R_App/run.sh
+daemon -r -U /usr/rfolder/R_App/run.sh

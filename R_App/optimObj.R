@@ -49,16 +49,11 @@ prmax <- function(sol,params){
   return(sum(cost^2))
 }
 
-getParams <- function(wastage.threshold,rmpart) {
-  params <- list()
+getParams <- function(wastage.threshold,rmpart1,params) {
+  # params <- list()
   params$wastage.threshold <- wastage.threshold
   #Take the req for the month in question
   params$message <- ""
-  rmpart1 <- rmpart[rmpart$totalLead <= rmpart$duein, ]
-  if(!(nrow(rmpart1) >=1)){
-    rmpart1 <- rmpart
-    params$message <- "Lead over due Date"
-    }
   #Generate Matrices
   #Matrix for Calculating the parts produced
   sfg <- cast(rmpart1,SFG + Req ~ SFG_+RM_+con_+RM.Length+RM.Breadth+Batch_+inStock,
@@ -70,13 +65,7 @@ getParams <- function(wastage.threshold,rmpart) {
   params$pairnms <- pairnms
   # pairs <- lapply(strsplit(pairnms, "_"), function (x) x)
   # # ifelse(length(x)==4,c(x,""),x[c(1,2,4,5,3)])
-  # 
-  #Matrix for Calculating the percentage wastage
-  WtForwst <- cast(rmpart1,.~ SFG_+RM_+con_+RM.Length+RM.Breadth+Batch_+inStock,
-                  value = "tsfgwt",
-                  fun.aggregate = function (x) ifelse(sum(x)==0,yes = 0,no = 1/(max(x)*nrow(sfg))),
-                  fill=0)
-  params$WtForwst <- WtForwst[,pairnms]
+
   
   #Wastage percentage
   wstprct <- cast(rmpart1,SFG ~ SFG_+RM_+con_+RM.Length+RM.Breadth+Batch_+inStock,
@@ -114,14 +103,14 @@ getParams <- function(wastage.threshold,rmpart) {
   #prempting wastage for one to one mapped parts
   wastage.threshold <- ifelse(max(rmpart1$Priority)>0,99.9,wastage.threshold)
   
-  lhs <- rbind(sfg[,pairnms],WtForwst[,pairnms], Sheetstk[,pairnms],Coilstk[,pairnms])
+  lhs <- rbind(sfg[,pairnms], Sheetstk[,pairnms],Coilstk[,pairnms])
   # lhs <- cbind(lhs,rep(0,nrow(lhs)))
   lhs[is.na(lhs)]<- 0
   params$lhs <- lhs
-  rhs <- c(sfg[,2],rep(100/(100-wastage.threshold),nrow(WtForwst)),rep(1,nrow(Sheetstk)),rep(1,nrow(Coilstk)))
+  rhs <- c(sfg[,2],rep(1,nrow(Sheetstk)),rep(1,nrow(Coilstk)))
   rhs[is.na(rhs)]<- 0
   params$rhs <-rhs
-  cond <- c(rep("==",nrow(sfg)),rep("<=",nrow(WtForwst)),rep("<=",nrow(Sheetstk)),rep("<=",nrow(Coilstk)))
+  cond <- c(rep("==",nrow(sfg)),rep("<=",nrow(Sheetstk)),rep("<=",nrow(Coilstk)))
   params$cond <- cond
   return(params)
 }

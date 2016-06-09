@@ -1,0 +1,23 @@
+Loading required package: lpSolve
+Loading required package: reshape
+Loading required package: plyr
+
+Attaching package: ‘plyr’
+
+The following objects are masked from ‘package:reshape’:
+
+    rename, round_any
+
+Loading required package: data.table
+data.table 1.9.6  For help type ?data.table or https://github.com/Rdatatable/data.table/wiki
+The fastest way to learn (by data.table authors): https://www.datacamp.com/courses/data-analysis-the-data-table-way
+
+Attaching package: ‘data.table’
+
+The following object is masked from ‘package:reshape’:
+
+    melt
+
+Loading required package: dummies
+dummies-1.5.6 provided by Decision Patterns
+

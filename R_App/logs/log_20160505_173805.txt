@@ -1,0 +1,10 @@
+Error in aggregate.data.frame(mf[1L], mf[-1L], FUN = FUN, ...) : 
+  no rows to aggregate
+In addition: Warning message:
+In read.table(file = file, header = header, sep = sep, quote = quote,  :
+  incomplete final line found by readTableHeader on 'R_Conversion Cost & Wastage/Wastage.csv'
+Error in aggregate.data.frame(mf[1L], mf[-1L], FUN = FUN, ...) : 
+  no rows to aggregate
+In addition: Warning message:
+In read.table(file = file, header = header, sep = sep, quote = quote,  :
+  incomplete final line found by readTableHeader on 'R_Conversion Cost & Wastage/Wastage.csv'

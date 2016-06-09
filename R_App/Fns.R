@@ -22,7 +22,7 @@ write2Disk <- function(tabl,params,run){
   }
   if(!("fromStock" %in% names(tabl))){tabl$fromStock <- 0}
   tabl <- tabl[,c("Order.No","Item","SFG","Coil","Sheet","Length","Breadth","Batch","wastage","fromStock","Purchase", "Cost","Remarks")]
-  output0 <- merge(requirements[is.na(requirements$RM.Length) & is.na(requirements$RM.Breadth),!(names(requirements) %in% c("RM.Length","RM.Breadth"))], tabl
+  output0 <- merge(requirements[(requirements$RM.Length==0) & (requirements$RM.Breadth==0),!(names(requirements) %in% c("RM.Length","RM.Breadth"))], tabl
                   ,by.x = c("Order.No","Item","SFG.Material","Raw.Material")
                   ,by.y = c("Order.No","Item","SFG","Sheet")
                   ,all.x = T)
@@ -39,23 +39,27 @@ write2Disk <- function(tabl,params,run){
                   ,by = c("Batch")
                   # ,by.y = c("Batch")
                   ,all.x = T)
-  output <- cbind(output,Splitclmn(output$Batch,"-",outcols = 4))
+  output <- cbind(output,Splitclmn(output$Batch,"-",outcols = 5))
   output <- rmclmn(output,"Batch")
   output <- renameCol(output,"1","Batch")
   output <- renameCol(output,"2","Plant.Considered")
-  output <- renameCol(output,"3","PO.Number")
-  output <- renameCol(output,"4","PR.Number")
+  output <- renameCol(output,"3","Storage.Location")
+  output <- renameCol(output,"4","PO.Number")
+  output <- renameCol(output,"5","PR.Number")
   output$fromPR <- sapply(1:nrow(output)
                           , function (x) ifelse(output$PR.Number[x] != " ",output$fromStock[x],0))
   output$fromPO <- sapply(1:nrow(output)
                           , function (x) ifelse(output$PO.Number[x] != " ",output$fromStock[x],0))
   
   output <- output[,c("Order.No","Item","Plant","Order.Req","Forecast.Date","Req.Delivery.Date","Mfg.Lead.time","KIT.Material","FG.Material","FG.Net.Req","SFG.Material","SFG.Net.Req","FG.SFG.Length","FG.SFG.Breadth","Coil","Raw.Material","RM.Length","RM.Breadth","RM.Qty.Set","Priority","Plant.Considered","Batch","Storage.Location","fromStock","Purchase","wastage","Remarks", "PO.Number", "PR.Number", "fromPO","fromPR")]
+  output <- output[order(output$Order.No,output$Forecast.Date),]
+  output[(output$FG.Material==output$SFG.Material),c("SFG.Material","SFG.Net.Req")] <- NA
+  output <- unique(output)
   ## to add when time sstamp is needed ,"_", format(Sys.time(), format = "%Y%m%d_%H%M%S")
-  filename <- paste(c("R_Output/R_Sol_",run,"_",format(Sys.time(), format = "%Y%m%d_%H%M%S"),".csv"),collapse = "")
-  filename1 <- paste(c("R_Output/R_Sol_",run,".csv"),collapse = "")
-  write.csv(output,filename,row.names = F,quote = F,na = "")
-  write.csv(output,filename1,row.names = F,quote = F,na = "")
+  filename <- paste(c("R_Output/R_Sol_",run,".csv"),collapse = "")
+  filename1 <- paste(c("R_Output/R_Sol_",unique(requirements$Plant)[1],".csv"),collapse = "")
+  write.table(output,filename,row.names = F,quote = F,na = "",sep = "|")
+  write.table(output,filename1,row.names = F,quote = F,na = "",sep = "|")
   #TO DO paste(c("Solution_",params$wastage.threshold,".csv"),collapse = "")
 }
 
@@ -67,7 +71,8 @@ updateStk <- function(sol,StkInp){
   for(i in usedStk$Batch){
     # print(i)
     # print(usedStk$fromStock[usedStk$Batch == i])
-    StkInp$Warehouse.Stock[StkInp$Batch == i]<- round(StkInp$Warehouse.Stock[StkInp$Batch == i] - usedStk$fromStock[usedStk$Batch == i])
+    StkInp$Warehouse.Stock[StkInp$Batch == i]<- round(StkInp$Warehouse.Stock[StkInp$Batch == i] - usedStk$fromStock[usedStk$Batch == i],6)
+    # StkInp$Warehouse.Stock[StkInp$Batch == i]<- StkInp$Warehouse.Stock[StkInp$Batch == i] - usedStk$fromStock[usedStk$Batch == i]
     # StkInp$Warehouse.Stock[StkInp$Warehouse.Stock < 1e-4] <- 0
   }
   return(StkInp)} else(return(StkInp))
@@ -91,7 +96,7 @@ consolStk <- function(StkInp){
   StkInp$PO.Number[is.na(StkInp$PO.Number)] <- " "
   StkInp$PR.Number[is.na(StkInp$PR.Number)] <- " "
   
-  StkInp$Batch <- do.call(paste,c(StkInp[,c("Batch","Plant", "PO.Number", "PR.Number")],sep = "-"))
+  StkInp$Batch <- do.call(paste,c(StkInp[,c("Batch","Plant","Storage.Location", "PO.Number", "PR.Number")],sep = "-"))
   return(StkInp)
 }
 
@@ -178,7 +183,7 @@ rmclmn<- function(df, clmns){
 }
 
 Splitclmn <- function(col,Split,outcols = 2){
-  out.df <- t(as.data.frame(sapply(col, function (x) ifelse(x=="",c(rep("",outcols)),strsplit(as.character(x), Split)))))
+  out.df <- t(as.data.frame(sapply(col, function (x) ifelse(x=="",list(rep("",outcols)),strsplit(as.character(x), Split)))))
   row.names(out.df) <- NULL
   return(out.df)
 }
@@ -198,4 +203,32 @@ getconWst <- function(df){
   dL <- sapply(c(1:length(cW)), function (x) ifelse(cW[x]/sL[x] >= 1,(cW[x] - floor(cW[x]/sL[x])*sL[x]),cW[x]))
   wst <- sapply(c(1:length(cW)), function (x) 100*min(dL[x], dW[x])/cW[x])
   return(wst)
+}
+
+diffPlant <- function(plant,batch){
+  stkPlant <- as.numeric(Splitclmn(batch,"-",5)[,2])
+  stkPlant[is.na(stkPlant)]<-0
+  bool <- (stkPlant !=plant & stkPlant !=0)
+  # & stkPlant !=""
+  bool[bool == T] <- 1
+  return(bool)
+}
+populateCoilwidth <- function(requirements,conv){
+  reqCoil <- merge(requirements,unique(conv[,c("From.Material.Number","Coil.Width")]),by.x = "Raw.Material",by.y = "From.Material.Number",all.x = T)
+  reqCoil[!is.na(reqCoil$Coil.Width), "RM.Breadth"] <- reqCoil[!is.na(reqCoil$Coil.Width), "Coil.Width"]
+  return(reqCoil[,!(names(reqCoil) %in% "Coil.Width")])
+}
+
+getFeasibleOpts <- function(rmpart,wastage.threshold){
+  rmpart2 <- rmpart[rmpart$totalLead <= rmpart$duein, ]
+  if(!(nrow(rmpart2) >=1)){
+    rmpart2 <- rmpart
+    params$message <<- "Lead over due Date"
+  }
+  rmpart1 <- rmpart2[rmpart2$wastage <= wastage.threshold | rmpart2$Priority > 0]
+  if(!(nrow(rmpart1) >=1)){
+    rmpart1 <- rmpart2
+    params$message <<- "No Feasible Wastage"
+  }
+  return(rmpart1)
 }
