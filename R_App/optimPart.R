@@ -80,7 +80,7 @@ for(i in unique(requirements[,c("Order.No")]))
         rmpart1 <- getFeasibleOpts(rmpart,wst[[1]])
         params <- getParams(wst[[1]],rmpart1, params)
         solobj <- runOptim(params)
-        if(solobj$solution ==0){
+        if(solobj$status == 2){
           params <- list()
           params <- getParams(wst[[1]],rmpart, params)
           params$message <- "No other feasible options"
