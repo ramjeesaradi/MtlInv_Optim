@@ -28,10 +28,16 @@ write2Disk <- function(tabl,params,run){
                   ,all.x = T)
   output0 <- renameCol(output0,"Length","RM.Length" )
   output0 <- renameCol(output0,"Breadth","RM.Breadth" )
+  
+  #fix for duplication of records produced by left outer join in output0
+  output0$RM.Breadth[is.na(output0$RM.Breadth)] <- 0
+  output0$RM.Length[is.na(output0$RM.Length)] <- 0
+  
   output1 <- merge(requirements[!is.na(requirements$RM.Breadth),], tabl
                    ,by.x = c("Order.No","Item","SFG.Material","Raw.Material","RM.Length","RM.Breadth")
                    ,by.y = c("Order.No","Item","SFG","Sheet","Length","Breadth")
                    ,all.x = T)
+  
   output <- rbind.fill(output0,output1)
   StkInp <- renameCol(StkInp,oldname = "Plant", "Stock.Plant")
   output <- merge( output, unique(StkInp[,c("Batch","Storage.Location")])

@@ -32,16 +32,18 @@ requirements <- read.csv(requirementsFile
                          ,colClasses = c(Order.No = "factor"))
 requirements$Order.No <- as.factor(requirements$Order.No)
 requirements$SFG.Material <- sapply(requirements$SFG.Material,function (x) gsub(" ","",x))
-#### FG from SFG to copy
+#### copy FG to SFG column where an FG does not have SFG
 requirements$SFG.Net.Req[requirements$SFG.Material == "" | is.na(requirements$SFG.Material)] <- (requirements$FG.Net.Req[requirements$SFG.Material == "" | is.na(requirements$SFG.Material)])
+#### Copy FG and FG net requirement to SFG and SFG net requirement columns where an FG does not have SFG.
 requirements$SFG.Material[requirements$SFG.Material == "" | is.na(requirements$SFG.Material)] <- as.character(requirements$FG.Material[requirements$SFG.Material == "" | is.na(requirements$SFG.Material)])
+
+#### Separate orders with and without requirements in requirements and NAreq
 NAreq <- requirements[(is.na(requirements$Raw.Material)),]
 requirements <- requirements[!(is.na(requirements$Raw.Material)),]
 
 requirements$SFG.Material <- sapply(requirements$SFG.Material,function (x) gsub(" ","",x))
 
-# requirements <- requirements[requirements$SFG.Material == "870-24042-PART3",]
-
+#### Load Stock file.
 StkInp <- read.csv(stockFile
                    ,sep = "|"
                    ,colClasses = c(Batch = "factor"))
@@ -54,13 +56,14 @@ if(nrow(StkInp)>=1){
   StkInp$Open.PO.s <- NA
   StkInp$Open.PR.s <- NA
 }
-# StkInp$RM.Breadth[StkInp$Type == "COIL"] <- 1250
+
 StkInp <- StkInp[!is.na(StkInp$RM.Breadth),]
 ################################################
 
 StkInp <- consolStk(StkInp)
 conv <- read.csv("R_Conversion Cost & Wastage/conversion.csv")
 wst <- as.vector(read.csv("R_Conversion Cost & Wastage/Wastage.csv"))
+#### Calculate conversion wastage
 conv$Wastage <- getconWst(conv)
 
 ##Populating Coil Widths
@@ -83,7 +86,7 @@ for(i in unique(requirements[,c("Order.No")]))
         if(solobj$status == 2){
           params <- list()
           params <- getParams(wst[[1]],rmpart, params)
-          params$message <- "No other feasible options"
+          params$message <- "No feasible options"
           solobj <- runOptim(params)
         }
         sol <- prepSol(solobj,rmpart,params)
